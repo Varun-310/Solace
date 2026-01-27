@@ -64,7 +64,7 @@ const AuthPage = ({ onSuccess }) => {
                     <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                         <Sparkles className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white mb-2">EmpathyAI</h1>
+                    <h1 className="text-3xl font-bold text-white mb-2">Solace</h1>
                     <p className="text-white/80">Your compassionate companion</p>
                 </div>
 

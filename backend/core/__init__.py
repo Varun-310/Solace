@@ -1,5 +1,5 @@
 """
-EmpathyAI Core Package
+Solace Core Package
 Contains business logic for emotion detection, context management, and LLM integration.
 """
 

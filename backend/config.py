@@ -1,5 +1,5 @@
 """
-EmpathyAI Configuration
+Solace Configuration
 Loads settings from environment variables.
 100% local - no external API keys needed!
 """
@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment."""
     
     # Application
-    APP_NAME: str = "EmpathyAI"
+    APP_NAME: str = "Solace"
     DEBUG: bool = False
     
     # Ollama - Local LLM (uses your installed models)

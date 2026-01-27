@@ -118,7 +118,7 @@ RESPOND NOW: Validate briefly, then ENCOURAGE and UPLIFT them. Help them feel st
         formatted = []
         
         for msg in recent:
-            role = "User" if msg["role"] == "user" else "EmpathyAI"
+            role = "User" if msg["role"] == "user" else "Solace"
             formatted.append(f"{role}: {msg['content']}")
         
         return "\n".join(formatted)

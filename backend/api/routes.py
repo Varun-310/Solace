@@ -1,5 +1,5 @@
 """
-API Routes for EmpathyAI
+API Routes for Solace
 Clean, RESTful endpoints for chat functionality.
 """
 

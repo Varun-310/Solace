@@ -1,5 +1,5 @@
 """
-EmpathyAI API Package
+Solace API Package
 """
 
 from .routes import router

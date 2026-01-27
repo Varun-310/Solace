@@ -1,8 +1,8 @@
-# 🧠 EmpathyAI
+# 🧠 Solace
 
 > A compassionate mental health companion powered by local AI
 
-EmpathyAI is a personalized mental health assistant that uses emotion detection and contextual memory to provide empathetic, human-like responses. It runs **100% locally** with no external API dependencies.
+Solace is a personalized mental health assistant that uses emotion detection and contextual memory to provide empathetic, human-like responses. It runs **100% locally** with no external API dependencies.
 
 ## ✨ Features
 
@@ -84,7 +84,7 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 ## 📁 Project Structure
 
 ```
-EmpathyAI/
+Solace/
 ├── backend/
 │   ├── api/              # API routes and schemas
 │   ├── core/             # Business logic
@@ -135,7 +135,7 @@ CONTEXT_WINDOW=10
 
 ## 🔒 Privacy
 
-EmpathyAI is designed with privacy in mind:
+Solace is designed with privacy in mind:
 
 - **Local Processing**: All AI inference runs on your machine
 - **No Data Collection**: Conversations are stored only in your local Redis
@@ -144,7 +144,7 @@ EmpathyAI is designed with privacy in mind:
 
 ## ⚠️ Disclaimer
 
-EmpathyAI is a supportive companion tool, **not a replacement for professional mental health care**. If you're experiencing a crisis, please contact:
+Solace is a supportive companion tool, **not a replacement for professional mental health care**. If you're experiencing a crisis, please contact:
 
 - **iCall**: 9152987821
 - **Vandrevala Foundation**: 1860-2662-345 (24/7)

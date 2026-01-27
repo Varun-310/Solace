@@ -1,5 +1,5 @@
 /**
- * API client for EmpathyAI backend.
+ * API client for Solace backend.
  * Handles all communication with the FastAPI server.
  */
 

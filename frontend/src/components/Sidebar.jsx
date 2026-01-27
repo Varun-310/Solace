@@ -42,7 +42,7 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                 {/* Header */}
                 <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-100'
                     }`}>
-                    <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>EmpathyAI</h2>
+                    <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Solace</h2>
                     <button
                         onClick={onClose}
                         className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
@@ -55,8 +55,8 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                 {/* User Profile */}
                 {isAuthenticated ? (
                     <div className={`p-4 border-b ${isDark
-                            ? 'bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-gray-700'
-                            : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100'
+                        ? 'bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-gray-700'
+                        : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100'
                         }`}>
                         <div className="flex items-center gap-3">
                             <div
@@ -75,8 +75,8 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                     </div>
                 ) : (
                     <div className={`p-4 border-b ${isDark
-                            ? 'bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-gray-700'
-                            : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100'
+                        ? 'bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-gray-700'
+                        : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100'
                         }`}>
                         <Link
                             to="/auth"

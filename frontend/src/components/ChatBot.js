@@ -1,6 +1,6 @@
 /**
  * Main ChatBot Component
- * The primary chat interface for EmpathyAI with better space utilization.
+ * The primary chat interface for Solace with better space utilization.
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -89,7 +89,7 @@ const ChatBot = () => {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>EmpathyAI</h1>
+                <h1 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Solace</h1>
                 <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {isConnected ? (
                     <span className="flex items-center gap-1">
@@ -180,7 +180,7 @@ const ChatBot = () => {
               </button>
             </div>
             <p className={`text-xs text-center mt-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              EmpathyAI is here to support, not replace professional help
+              Solace is here to support, not replace professional help
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ const EmptyState = ({ isAuthenticated, userName, onPromptClick, isDark }) => (
 
     {/* Welcome Text */}
     <h2 className={`text-2xl font-medium mb-2 ${isDark ? 'text-white' : 'text-gray-700'}`}>
-      {isAuthenticated ? `Welcome, ${userName || 'Friend'}!` : 'Welcome to EmpathyAI'}
+      {isAuthenticated ? `Welcome, ${userName || 'Friend'}!` : 'Welcome to Solace'}
     </h2>
     <p className={`max-w-md mx-auto mb-8 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
       I'm here to listen and support you. Share what's on your mind,

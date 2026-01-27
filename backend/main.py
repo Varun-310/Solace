@@ -1,5 +1,5 @@
 """
-EmpathyAI Backend - FastAPI Application
+Solace Backend - FastAPI Application
 A compassionate mental health companion powered by local AI.
 """
 
@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║                     🧠 EmpathyAI Backend                      ║
+║                       🧠 Solace Backend                        ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Model: {settings.OLLAMA_MODEL:<52} ║
 ║  Ollama: {settings.OLLAMA_HOST:<51} ║
@@ -30,11 +30,11 @@ async def lifespan(app: FastAPI):
 ╚══════════════════════════════════════════════════════════════╝
     """)
     yield
-    print("EmpathyAI Backend shutting down...")
+    print("Solace Backend shutting down...")
 
 
 app = FastAPI(
-    title="EmpathyAI",
+    title="Solace",
     description="A compassionate mental health companion powered by local AI",
     version="2.0.0",
     lifespan=lifespan
@@ -58,7 +58,7 @@ app.include_router(auth_router, prefix="/api")
 def root():
     """Root endpoint - API info."""
     return {
-        "name": "EmpathyAI",
+        "name": "Solace",
         "version": "2.0.0",
         "status": "running",
         "docs": "/docs"

@@ -1,6 +1,6 @@
 /**
  * About Page
- * Rich information about EmpathyAI with features, technology, and privacy info.
+ * Rich information about Solace with features, technology, and privacy info.
  */
 
 import { ArrowLeft, Heart, Shield, Brain, MessageCircle, Sparkles, Cpu, Zap, Lock } from "lucide-react";
@@ -18,7 +18,7 @@ const About = () => {
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </Link>
-                    <h1 className="font-semibold text-gray-800">About EmpathyAI</h1>
+                    <h1 className="font-semibold text-gray-800">About Solace</h1>
                 </div>
             </header>
 
@@ -30,7 +30,7 @@ const About = () => {
                         <Heart className="w-12 h-12 text-white" />
                     </div>
                     <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                        EmpathyAI
+                        Solace
                     </h2>
                     <p className="text-xl text-gray-600 max-w-md mx-auto">
                         A compassionate mental health companion that truly understands how you feel
@@ -125,7 +125,7 @@ const About = () => {
                 <section className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8">
                     <h3 className="font-semibold text-amber-800 mb-2">⚠️ Important Notice</h3>
                     <p className="text-amber-700 mb-4">
-                        EmpathyAI is a supportive tool, not a replacement for professional mental health care.
+                        Solace is a supportive tool, not a replacement for professional mental health care.
                         If you're experiencing a crisis, please contact a professional.
                     </p>
 

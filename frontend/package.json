@@ -1,8 +1,8 @@
 {
-  "name": "empathyai-frontend",
+  "name": "solace-frontend",
   "version": "2.0.0",
   "private": true,
-  "description": "EmpathyAI - A compassionate mental health companion",
+  "description": "Solace - A compassionate mental health companion",
   "dependencies": {
     "lucide-react": "^0.483.0",
     "react": "^19.0.0",

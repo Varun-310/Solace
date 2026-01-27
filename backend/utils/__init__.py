@@ -1,3 +1,3 @@
 """
-EmpathyAI Utils Package
+Solace Utils Package
 """

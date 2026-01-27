@@ -1,5 +1,5 @@
 """
-System Prompts for EmpathyAI
+System Prompts for Solace
 Designed to provide genuine emotional support that helps users feel better.
 """
 
