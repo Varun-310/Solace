@@ -20,12 +20,8 @@ export const useChat = () => {
             setSessionId(session_id);
             localStorage.setItem('empathy_session', session_id);
 
-            // Add welcome message
-            setMessages([{
-                role: 'assistant',
-                content: message,
-                timestamp: new Date().toISOString()
-            }]);
+            // Note: We don't add the welcome message automatically anymore
+            // so that the Empty State with prompts can be shown.
         } catch (err) {
             console.error('Failed to create session:', err);
             setError('Failed to create a new session');

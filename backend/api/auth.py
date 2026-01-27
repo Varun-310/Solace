@@ -88,11 +88,6 @@ async def get_current_user(
 
 # ============ Endpoints ============
 
-@router.on_event("startup")
-async def startup():
-    """Initialize database on startup."""
-    await init_db()
-
 
 @router.post("/register", response_model=AuthResponse)
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
