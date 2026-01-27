@@ -14,18 +14,18 @@ export const chatAPI = {
    * @param {Object} data - { message: string, session_id?: string }
    * @returns {Promise<{ response: string, session_id: string }>}
    */
-  async sendMessage({ message, session_id }) {
+  async sendMessage({ message, session_id, mode }) {
     const response = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, session_id }),
+      body: JSON.stringify({ message, session_id, mode }),
     });
-    
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.detail || 'Failed to send message');
     }
-    
+
     return response.json();
   },
 
@@ -37,11 +37,11 @@ export const chatAPI = {
     const response = await fetch(`${API_BASE}/session/new`, {
       method: 'POST',
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to create session');
     }
-    
+
     return response.json();
   },
 

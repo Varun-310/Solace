@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
     message: str
     session_id: Optional[str] = None
+    mode: Optional[str] = "guide"  # "guide" or "friend"
 
 
 class ChatResponse(BaseModel):

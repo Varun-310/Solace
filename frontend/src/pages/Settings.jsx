@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ArrowLeft, User, Palette, Bell, Moon, Sun, Check, LogOut } from 'lucide-react';
+import { ArrowLeft, User, Palette, Bell, Moon, Sun, Check, LogOut, MessageCircle, Sparkles, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -21,6 +21,7 @@ const Settings = () => {
         displayName: user?.display_name || '',
         avatarColor: user?.avatar_color || '#8B5CF6',
         theme: user?.theme || 'light',
+        chatMode: user?.chat_mode || 'guide',
         notifications: user?.notifications_enabled ?? true
     });
 
@@ -32,6 +33,7 @@ const Settings = () => {
                 displayName: settings.displayName,
                 avatarColor: settings.avatarColor,
                 theme: settings.theme,
+                chatMode: settings.chatMode,
                 notificationsEnabled: settings.notifications
             });
         } catch {
@@ -136,6 +138,56 @@ const Settings = () => {
                             </Link>
                         </div>
                     )}
+                </section>
+
+                {/* Chat Mode Section */}
+                <section className="bg-white rounded-2xl p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <MessageCircle className="w-5 h-5 text-purple-500" />
+                        Chat Experience
+                    </h2>
+
+                    <div className="space-y-3">
+                        {/* Guide Mode */}
+                        <button
+                            onClick={() => setSettings(prev => ({ ...prev, chatMode: 'guide' }))}
+                            className={`w-full p-4 rounded-xl border-2 transition-all text-left flex items-start gap-4
+                                      ${settings.chatMode === 'guide'
+                                    ? 'border-purple-500 bg-purple-50'
+                                    : 'border-gray-200 hover:border-gray-300'}`}
+                        >
+                            <div className={`p-2 rounded-lg ${settings.chatMode === 'guide' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                <Sparkles className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-800">Compassionate Guide</h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Deep, supportive, and structured responses. Best for exploring complex feelings.
+                                </p>
+                            </div>
+                            {settings.chatMode === 'guide' && <Check className="w-5 h-5 text-purple-500 ml-auto" />}
+                        </button>
+
+                        {/* Friend Mode */}
+                        <button
+                            onClick={() => setSettings(prev => ({ ...prev, chatMode: 'friend' }))}
+                            className={`w-full p-4 rounded-xl border-2 transition-all text-left flex items-start gap-4
+                                      ${settings.chatMode === 'friend'
+                                    ? 'border-purple-500 bg-purple-50'
+                                    : 'border-gray-200 hover:border-gray-300'}`}
+                        >
+                            <div className={`p-2 rounded-lg ${settings.chatMode === 'friend' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                <Heart className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-800">Caring Friend</h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Casual, warm, and conversational. Best for everyday chat and encouragement.
+                                </p>
+                            </div>
+                            {settings.chatMode === 'friend' && <Check className="w-5 h-5 text-purple-500 ml-auto" />}
+                        </button>
+                    </div>
                 </section>
 
                 {/* Appearance Section */}

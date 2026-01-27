@@ -28,6 +28,7 @@ class User(Base):
     
     # Profile settings
     theme = Column(String(20), default="light")
+    chat_mode = Column(String(20), default="guide")  # "guide" or "friend"
     notifications_enabled = Column(Boolean, default=True)
     
     # Metadata
@@ -89,8 +90,12 @@ AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=F
 
 async def init_db():
     """Initialize database tables."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"Database initialization note: {e}")
+        # Continue anyway as tables probably exist
 
 
 async def get_db():

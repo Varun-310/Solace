@@ -77,7 +77,7 @@ export const useChat = () => {
         initializeSession();
     }, [startNewSession]);
 
-    const sendMessage = useCallback(async (content) => {
+    const sendMessage = useCallback(async (content, mode = 'guide') => {
         if (!content.trim() || !sessionId) return;
 
         setError(null);
@@ -94,7 +94,8 @@ export const useChat = () => {
         try {
             const response = await chatAPI.sendMessage({
                 message: content,
-                session_id: sessionId
+                session_id: sessionId,
+                mode
             });
 
             // Add bot response

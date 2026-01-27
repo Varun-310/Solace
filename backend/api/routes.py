@@ -120,7 +120,8 @@ async def chat(request: ChatRequest):
         response_text = await llm_svc.generate_response(
             user_message=request.message,
             context=context,
-            emotional_summary=emotional_summary
+            emotional_summary=emotional_summary,
+            mode=request.mode or "guide"
         )
         
         # 4. Store bot response in context

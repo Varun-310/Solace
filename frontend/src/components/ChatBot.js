@@ -39,11 +39,13 @@ const ChatBot = () => {
     inputRef.current?.focus();
   }, []);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping || !isConnected) return;
-    const message = input;
+  const handleSend = async (text = input) => {
+    const content = typeof text === 'string' ? text : input;
+    if (!content.trim() || isTyping || !isConnected) return;
+
     setInput("");
-    await sendMessage(message);
+    const mode = user?.chat_mode || "guide";
+    await sendMessage(content, mode);
     inputRef.current?.focus();
   };
 
@@ -121,7 +123,11 @@ const ChatBot = () => {
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-3xl mx-auto space-y-6">
             {messages.length === 0 && (
-              <EmptyState isAuthenticated={isAuthenticated} userName={user?.display_name} />
+              <EmptyState
+                isAuthenticated={isAuthenticated}
+                userName={user?.display_name}
+                onPromptClick={handleSend}
+              />
             )}
 
             {messages.map((msg, idx) => (
@@ -196,18 +202,21 @@ const EmptyState = ({ isAuthenticated, userName }) => (
     <div className="max-w-lg mx-auto">
       <p className="text-sm text-gray-400 mb-3">Try saying...</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <PromptChip text="I'm feeling stressed today" />
-        <PromptChip text="I need someone to talk to" />
-        <PromptChip text="I'm having a rough week" />
-        <PromptChip text="I feel anxious about work" />
+        <PromptChip text="I'm feeling stressed today" onClick={onPromptClick} />
+        <PromptChip text="I need someone to talk to" onClick={onPromptClick} />
+        <PromptChip text="I'm having a rough week" onClick={onPromptClick} />
+        <PromptChip text="I feel anxious about work" onClick={onPromptClick} />
       </div>
     </div>
   </div>
 );
 
-const PromptChip = ({ text }) => (
-  <button className="px-4 py-2 rounded-full bg-white border border-purple-200 text-sm text-gray-600
-                   hover:border-purple-400 hover:bg-purple-50 transition-all">
+const PromptChip = ({ text, onClick }) => (
+  <button
+    onClick={() => onClick && onClick(text)}
+    className="px-4 py-2 rounded-full bg-white border border-purple-200 text-sm text-gray-600
+               hover:border-purple-400 hover:bg-purple-50 transition-all"
+  >
     {text}
   </button>
 );
