@@ -8,12 +8,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from api.routes import router
+from api.auth import router as auth_router
+from core.user import init_db
 from config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
+    # Initialize database
+    await init_db()
+    print("✅ Database initialized")
+    
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║                     🧠 EmpathyAI Backend                      ║
@@ -45,6 +51,7 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 
 @app.get("/")

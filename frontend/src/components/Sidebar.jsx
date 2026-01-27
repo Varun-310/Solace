@@ -1,11 +1,22 @@
 /**
  * Sidebar Component
- * Navigation and session management.
+ * Navigation with user profile and session management.
  */
 
-import { X, Plus, MessageCircle, Settings, Info, LogOut as Trash2 } from "lucide-react";
+import { X, Plus, MessageCircle, Settings, Info, LogOut, User } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await logout();
+        onClose();
+        navigate('/auth');
+    };
+
     return (
         <>
             {/* Overlay */}
@@ -35,6 +46,43 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                     </button>
                 </div>
 
+                {/* User Profile */}
+                {isAuthenticated ? (
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
+                        <div className="flex items-center gap-3">
+                            <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                                style={{ backgroundColor: user?.avatar_color || '#8B5CF6' }}
+                            >
+                                {user?.display_name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-800 truncate">
+                                    {user?.display_name || user?.username}
+                                </p>
+                                <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
+                        <Link
+                            to="/auth"
+                            onClick={onClose}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-white rounded-xl shadow-sm 
+                       hover:shadow-md transition-all"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                <User className="w-5 h-5 text-gray-500" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-800">Sign In</p>
+                                <p className="text-xs text-gray-500">Save your conversations</p>
+                            </div>
+                        </Link>
+                    </div>
+                )}
+
                 {/* New Chat Button */}
                 <div className="p-3">
                     <button
@@ -55,13 +103,29 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
 
                 {/* Navigation */}
                 <nav className="flex-1 p-3 space-y-1">
-                    <NavItem icon={MessageCircle} label="Chat" active />
-                    <NavItem icon={Settings} label="Settings" />
-                    <NavItem icon={Info} label="About" />
+                    <NavItem
+                        icon={MessageCircle}
+                        label="Chat"
+                        to="/"
+                        onClick={onClose}
+                        active
+                    />
+                    <NavItem
+                        icon={Settings}
+                        label="Settings"
+                        to="/settings"
+                        onClick={onClose}
+                    />
+                    <NavItem
+                        icon={Info}
+                        label="About"
+                        to="/about"
+                        onClick={onClose}
+                    />
                 </nav>
 
                 {/* Footer */}
-                <div className="p-3 border-t border-gray-100">
+                <div className="p-3 border-t border-gray-100 space-y-2">
                     <button
                         onClick={() => {
                             if (window.confirm('Clear all conversation history?')) {
@@ -70,20 +134,34 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                             }
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 
-                       text-red-600 hover:bg-red-50 rounded-lg
+                       text-gray-600 hover:bg-gray-50 rounded-lg
                        transition-colors text-sm"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        <X className="w-4 h-4" />
                         Clear History
                     </button>
+
+                    {isAuthenticated && (
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 
+                         text-red-600 hover:bg-red-50 rounded-lg
+                         transition-colors text-sm"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
+                        </button>
+                    )}
                 </div>
             </aside>
         </>
     );
 };
 
-const NavItem = ({ icon: Icon, label, active }) => (
-    <button
+const NavItem = ({ icon: Icon, label, to, onClick, active }) => (
+    <Link
+        to={to}
+        onClick={onClick}
         className={`
       w-full flex items-center gap-3 px-4 py-2.5 rounded-lg
       text-sm font-medium transition-colors
@@ -95,7 +173,7 @@ const NavItem = ({ icon: Icon, label, active }) => (
     >
         <Icon className="w-4 h-4" />
         {label}
-    </button>
+    </Link>
 );
 
 export default Sidebar;
