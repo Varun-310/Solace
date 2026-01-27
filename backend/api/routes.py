@@ -54,7 +54,6 @@ def get_services():
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """Check if all services are running."""
-    import redis.asyncio as redis_client
     import ollama
     
     # Check Ollama
@@ -69,15 +68,19 @@ async def health_check():
     # Check Redis
     redis_status = "disconnected"
     try:
+        import redis.asyncio as redis_client
         r = redis_client.from_url(settings.REDIS_URL)
         await r.ping()
         redis_status = "connected"
         await r.close()
     except Exception:
-        pass
+        redis_status = "using_fallback"  # In-memory storage will be used
+    
+    # Overall status - healthy if Ollama works (Redis has fallback)
+    status = "healthy" if ollama_status == "connected" else "degraded"
     
     return HealthResponse(
-        status="healthy" if ollama_status == "connected" else "degraded",
+        status=status,
         ollama=ollama_status,
         model=settings.OLLAMA_MODEL,
         redis=redis_status

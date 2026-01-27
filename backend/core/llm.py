@@ -62,8 +62,21 @@ You matter, and there are people who want to support you. I'm here to talk too -
         # Verify model is available
         print(f"🔄 Connecting to Ollama at {host}...")
         try:
-            models = self.client.list()
-            available = [m["name"] for m in models.get("models", [])]
+            models_response = self.client.list()
+            # Handle different response formats
+            if isinstance(models_response, dict):
+                models_list = models_response.get("models", [])
+            else:
+                # Newer ollama versions might return a different structure
+                models_list = list(models_response) if models_response else []
+            
+            available = []
+            for m in models_list:
+                if isinstance(m, dict):
+                    available.append(m.get("name", m.get("model", str(m))))
+                else:
+                    available.append(str(m))
+            
             if any(model_name in m for m in available):
                 print(f"✅ LLM ready: {model_name}")
             else:
