@@ -6,6 +6,13 @@ Uses your installed models (Gemma 3 4B / Qwen 2.5 7B).
 
 import ollama
 from typing import Dict, List
+from utils.prompts import (
+    SYSTEM_PROMPT_GUIDE, 
+    SYSTEM_PROMPT_FRIEND, 
+    CRISIS_RESPONSE,
+    CRISIS_KEYWORDS,
+    get_system_prompt
+)
 
 
 class LLMService:
@@ -16,58 +23,6 @@ class LLMService:
     - gemma3:4b (default, faster on RTX 4060)
     - qwen2.5:7b (more capable, slower)
     """
-    
-    SYSTEM_PROMPT_GUIDE = """You are EmpathyAI, a compassionate support guide.
-
-YOUR ROLE:
-- LISTEN with deep empathy and validation
-- FOLLOW UP with thoughtful questions to explore feelings
-- PROVIDE gentle guidance and perspective
-- BE SUPPORTIVE like a wise, caring mentor
-- FOCUS on the user's emotional journey
-
-COMMUNICATION STYLE:
-- Warm, calm, and grounded tone
-- Use complete sentences and thoughtful language
-- Example: "I hear how heavy that weighs on you. It's understandable to feel..."
-- Avoid clinical jargon, be human and authentic
-- Length: 2-4 sentences (focused but substantial)
-
-IMPORTANT BOUNDARIES:
-- You are a companion/guide, NOT a licensed therapist
-- If user mentions self-harm, provide crisis resources immediately
-- Suggest professional help when appropriate
-"""
-
-    SYSTEM_PROMPT_FRIEND = """You are EmpathyAI, a caring close friend.
-
-YOUR ROLE:
-- BE CASUAL, warm, and real
-- CHAT like a best friend who really cares
-- VALIDATE feelings but keep it conversational
-- BE ENCOURAGING and on their side
-- USE common language, maybe clear simple terms
-
-COMMUNICATION STYLE:
-- Casual, relaxed, conversational tone
-- It's okay to use shorter sentences or fragments
-- Use affectionate terms naturally if appropriate (e.g., "buddy", "friend")
-- Example: "Man, that sounds tough. I'm really sorry you're dealing with that."
-- Length: Concise and chatty (1-3 sentences)
-
-IMPORTANT BOUNDARIES:
-- Still not a therapist!
-- Crisis resources if self-harm mentioned
-"""
-
-    CRISIS_RESPONSE = """I hear that you're going through something really difficult right now, and I'm genuinely concerned about your wellbeing.
-
-Please reach out to someone who can help:
-• **iCall**: 9152987821 (Mon-Sat, 8am-10pm)
-• **Vandrevala Foundation**: 1860-2662-345 (24/7)
-• **NIMHANS**: 080-46110007
-
-You matter, and there are people who want to support you. I'm here to talk too - what's been weighing on you?"""
 
     def __init__(self, model_name: str = "gemma3:4b", host: str = "http://localhost:11434"):
         self.model_name = model_name
@@ -110,31 +65,29 @@ You matter, and there are people who want to support you. I'm here to talk too -
     ) -> str:
         """Generate an empathetic response based on context and emotion."""
         
-        # Check for crisis keywords
-        crisis_keywords = [
-            "suicide", "kill myself", "end my life", "self-harm", 
-            "hurt myself", "don't want to live", "want to die",
-            "ending it all", "no reason to live"
-        ]
-        if any(kw in user_message.lower() for kw in crisis_keywords):
-            return self.CRISIS_RESPONSE
+        # Check for crisis keywords (imported from prompts.py)
+        if any(kw in user_message.lower() for kw in CRISIS_KEYWORDS):
+            return CRISIS_RESPONSE
         
         # Format conversation history
         history = self._format_history(context["messages"])
         
-        # Select prompt based on mode
-        base_prompt = self.SYSTEM_PROMPT_FRIEND if mode == "friend" else self.SYSTEM_PROMPT_GUIDE
+        # Select prompt based on mode (using helper from prompts.py)
+        base_prompt = get_system_prompt(mode)
         
-        # Construct prompt with emotional context
+        # Construct rich emotional context for more personalized responses
         system_prompt = f"""{base_prompt}
 
-EMOTIONAL CONTEXT:
-{emotional_summary}
+---
+USER'S CURRENT STATE: {emotional_summary}
 
 CONVERSATION SO FAR:
-{history}""".strip()
+{history}
+
+---
+RESPOND NOW: Validate briefly, then ENCOURAGE and UPLIFT them. Help them feel stronger and more hopeful. Don't just ask questions - offer support.""".strip()
         
-        # Generate response using Ollama
+        # Generate response using Ollama with tuned parameters
         try:
             response = self.client.chat(
                 model=self.model_name,
@@ -143,16 +96,18 @@ CONVERSATION SO FAR:
                     {"role": "user", "content": user_message}
                 ],
                 options={
-                    "temperature": 0.7,
-                    "top_p": 0.9,
-                    "num_predict": 500,  # Increased from 200 to avoid cut-off
+                    "temperature": 0.85,      # Higher for more varied responses
+                    "top_p": 0.92,            # Slightly higher for more diversity
+                    "num_predict": 300,       # Focused response length
+                    "repeat_penalty": 1.15,   # Reduce repetitive phrases
+                    "top_k": 50,              # Consider more token options
                 }
             )
             return response["message"]["content"]
             
         except Exception as e:
             print(f"LLM Error: {e}")
-            return "I'm having a moment - could you say that again? I want to make sure I understand you."
+            return "I'm having a moment - could you say that again?"
     
     def _format_history(self, messages: List[Dict], max_messages: int = 8) -> str:
         """Format recent conversation for the prompt."""

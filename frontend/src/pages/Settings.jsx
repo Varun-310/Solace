@@ -3,10 +3,11 @@
  * User profile and app settings management.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, User, Palette, Bell, Moon, Sun, Check, LogOut, MessageCircle, Sparkles, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useSettings } from '../hooks/useSettings';
 
 const AVATAR_COLORS = [
     '#8B5CF6', '#EC4899', '#06B6D4', '#10B981',
@@ -15,26 +16,34 @@ const AVATAR_COLORS = [
 
 const Settings = () => {
     const { user, isAuthenticated, updateProfile, logout } = useAuth();
+    const { theme, chatMode, setTheme, setChatMode, isDark } = useSettings();
     const navigate = useNavigate();
     const [saving, setSaving] = useState(false);
-    const [settings, setSettings] = useState({
+    const [profileSettings, setProfileSettings] = useState({
         displayName: user?.display_name || '',
         avatarColor: user?.avatar_color || '#8B5CF6',
-        theme: user?.theme || 'light',
-        chatMode: user?.chat_mode || 'guide',
         notifications: user?.notifications_enabled ?? true
     });
 
-    const handleSave = async () => {
+    // Sync profile settings when user changes
+    useEffect(() => {
+        if (user) {
+            setProfileSettings({
+                displayName: user.display_name || '',
+                avatarColor: user.avatar_color || '#8B5CF6',
+                notifications: user.notifications_enabled ?? true
+            });
+        }
+    }, [user]);
+
+    const handleSaveProfile = async () => {
         if (!isAuthenticated) return;
         setSaving(true);
         try {
             await updateProfile({
-                displayName: settings.displayName,
-                avatarColor: settings.avatarColor,
-                theme: settings.theme,
-                chatMode: settings.chatMode,
-                notificationsEnabled: settings.notifications
+                displayName: profileSettings.displayName,
+                avatarColor: profileSettings.avatarColor,
+                notificationsEnabled: profileSettings.notifications
             });
         } catch {
             // Error handled by hook
@@ -49,17 +58,24 @@ const Settings = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
+        <div className={`min-h-screen transition-colors ${isDark
+            ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900'
+            : 'bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50'
+            }`}>
             {/* Header */}
-            <header className="px-4 py-3 bg-white/80 backdrop-blur-sm border-b border-purple-100">
+            <header className={`px-4 py-3 backdrop-blur-sm border-b transition-colors ${isDark
+                ? 'bg-gray-800/80 border-gray-700'
+                : 'bg-white/80 border-purple-100'
+                }`}>
                 <div className="max-w-2xl mx-auto flex items-center gap-3">
                     <Link
                         to="/"
-                        className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-purple-100'
+                            }`}
                     >
-                        <ArrowLeft className="w-5 h-5 text-gray-600" />
+                        <ArrowLeft className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
                     </Link>
-                    <h1 className="font-semibold text-gray-800">Settings</h1>
+                    <h1 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Settings</h1>
                 </div>
             </header>
 
@@ -67,8 +83,10 @@ const Settings = () => {
             <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
                 {/* Profile Section */}
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <section className={`rounded-2xl p-6 shadow-sm transition-colors ${isDark ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                    <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-800'
+                        }`}>
                         <User className="w-5 h-5 text-purple-500" />
                         Profile
                     </h2>
@@ -79,45 +97,51 @@ const Settings = () => {
                             <div className="flex items-center gap-4">
                                 <div
                                     className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                                    style={{ backgroundColor: settings.avatarColor }}
+                                    style={{ backgroundColor: profileSettings.avatarColor }}
                                 >
-                                    {settings.displayName?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
+                                    {profileSettings.displayName?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-800">{settings.displayName || user?.username}</p>
-                                    <p className="text-sm text-gray-500">{user?.email}</p>
+                                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                                        {profileSettings.displayName || user?.username}
+                                    </p>
+                                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{user?.email}</p>
                                 </div>
                             </div>
 
                             {/* Display Name */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-1">
+                                <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-600'
+                                    }`}>
                                     Display Name
                                 </label>
                                 <input
                                     type="text"
-                                    value={settings.displayName}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, displayName: e.target.value }))}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 
-                                             focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none"
+                                    value={profileSettings.displayName}
+                                    onChange={(e) => setProfileSettings(prev => ({ ...prev, displayName: e.target.value }))}
+                                    className={`w-full px-4 py-2 rounded-lg border outline-none transition-colors ${isDark
+                                        ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-400'
+                                        : 'border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100'
+                                        }`}
                                 />
                             </div>
 
                             {/* Avatar Color */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-2">
+                                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-600'
+                                    }`}>
                                     Avatar Color
                                 </label>
                                 <div className="flex gap-2 flex-wrap">
                                     {AVATAR_COLORS.map(color => (
                                         <button
                                             key={color}
-                                            onClick={() => setSettings(prev => ({ ...prev, avatarColor: color }))}
+                                            onClick={() => setProfileSettings(prev => ({ ...prev, avatarColor: color }))}
                                             className={`w-10 h-10 rounded-full transition-transform hover:scale-110 
-                                                      ${settings.avatarColor === color ? 'ring-2 ring-offset-2 ring-purple-500' : ''}`}
+                                                      ${profileSettings.avatarColor === color ? 'ring-2 ring-offset-2 ring-purple-500' : ''}`}
                                             style={{ backgroundColor: color }}
                                         >
-                                            {settings.avatarColor === color && (
+                                            {profileSettings.avatarColor === color && (
                                                 <Check className="w-5 h-5 text-white mx-auto" />
                                             )}
                                         </button>
@@ -127,7 +151,9 @@ const Settings = () => {
                         </div>
                     ) : (
                         <div className="text-center py-6">
-                            <p className="text-gray-500 mb-4">Sign in to save your preferences</p>
+                            <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                Sign in to save your preferences
+                            </p>
                             <Link
                                 to="/auth"
                                 className="inline-flex items-center gap-2 px-6 py-2 rounded-full 
@@ -141,8 +167,10 @@ const Settings = () => {
                 </section>
 
                 {/* Chat Mode Section */}
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <section className={`rounded-2xl p-6 shadow-sm transition-colors ${isDark ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                    <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-800'
+                        }`}>
                         <MessageCircle className="w-5 h-5 text-purple-500" />
                         Chat Experience
                     </h2>
@@ -150,70 +178,72 @@ const Settings = () => {
                     <div className="space-y-3">
                         {/* Guide Mode */}
                         <button
-                            onClick={() => setSettings(prev => ({ ...prev, chatMode: 'guide' }))}
+                            onClick={() => setChatMode('guide')}
                             className={`w-full p-4 rounded-xl border-2 transition-all text-left flex items-start gap-4
-                                      ${settings.chatMode === 'guide'
-                                    ? 'border-purple-500 bg-purple-50'
-                                    : 'border-gray-200 hover:border-gray-300'}`}
+                                      ${chatMode === 'guide'
+                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
+                                    : isDark ? 'border-gray-600 hover:border-gray-500' : 'border-gray-200 hover:border-gray-300'}`}
                         >
-                            <div className={`p-2 rounded-lg ${settings.chatMode === 'guide' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                            <div className={`p-2 rounded-lg ${chatMode === 'guide' ? 'bg-purple-100 text-purple-600 dark:bg-purple-800 dark:text-purple-300' : isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                                 <Sparkles className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-gray-800">Compassionate Guide</h3>
-                                <p className="text-sm text-gray-500 mt-1">
+                                <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Compassionate Guide</h3>
+                                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                     Deep, supportive, and structured responses. Best for exploring complex feelings.
                                 </p>
                             </div>
-                            {settings.chatMode === 'guide' && <Check className="w-5 h-5 text-purple-500 ml-auto" />}
+                            {chatMode === 'guide' && <Check className="w-5 h-5 text-purple-500 ml-auto" />}
                         </button>
 
                         {/* Friend Mode */}
                         <button
-                            onClick={() => setSettings(prev => ({ ...prev, chatMode: 'friend' }))}
+                            onClick={() => setChatMode('friend')}
                             className={`w-full p-4 rounded-xl border-2 transition-all text-left flex items-start gap-4
-                                      ${settings.chatMode === 'friend'
-                                    ? 'border-purple-500 bg-purple-50'
-                                    : 'border-gray-200 hover:border-gray-300'}`}
+                                      ${chatMode === 'friend'
+                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
+                                    : isDark ? 'border-gray-600 hover:border-gray-500' : 'border-gray-200 hover:border-gray-300'}`}
                         >
-                            <div className={`p-2 rounded-lg ${settings.chatMode === 'friend' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                            <div className={`p-2 rounded-lg ${chatMode === 'friend' ? 'bg-purple-100 text-purple-600 dark:bg-purple-800 dark:text-purple-300' : isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                                 <Heart className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-gray-800">Caring Friend</h3>
-                                <p className="text-sm text-gray-500 mt-1">
+                                <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Caring Friend</h3>
+                                <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                                     Casual, warm, and conversational. Best for everyday chat and encouragement.
                                 </p>
                             </div>
-                            {settings.chatMode === 'friend' && <Check className="w-5 h-5 text-purple-500 ml-auto" />}
+                            {chatMode === 'friend' && <Check className="w-5 h-5 text-purple-500 ml-auto" />}
                         </button>
                     </div>
                 </section>
 
                 {/* Appearance Section */}
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <section className={`rounded-2xl p-6 shadow-sm transition-colors ${isDark ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                    <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-800'
+                        }`}>
                         <Palette className="w-5 h-5 text-purple-500" />
                         Appearance
                     </h2>
 
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setSettings(prev => ({ ...prev, theme: 'light' }))}
+                            onClick={() => setTheme('light')}
                             className={`flex-1 p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2
-                                      ${settings.theme === 'light'
+                                      ${theme === 'light'
                                     ? 'border-purple-500 bg-purple-50'
-                                    : 'border-gray-200 hover:border-gray-300'}`}
+                                    : isDark ? 'border-gray-600 hover:border-gray-500 text-gray-300' : 'border-gray-200 hover:border-gray-300'}`}
                         >
                             <Sun className="w-5 h-5" />
                             Light
                         </button>
                         <button
-                            onClick={() => setSettings(prev => ({ ...prev, theme: 'dark' }))}
+                            onClick={() => setTheme('dark')}
                             className={`flex-1 p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2
-                                      ${settings.theme === 'dark'
-                                    ? 'border-purple-500 bg-purple-50'
-                                    : 'border-gray-200 hover:border-gray-300'}`}
+                                      ${theme === 'dark'
+                                    ? 'border-purple-500 bg-purple-900/30 text-white'
+                                    : isDark ? 'border-gray-600 hover:border-gray-500 text-gray-300' : 'border-gray-200 hover:border-gray-300'}`}
                         >
                             <Moon className="w-5 h-5" />
                             Dark
@@ -222,35 +252,37 @@ const Settings = () => {
                 </section>
 
                 {/* Notifications Section */}
-                <section className="bg-white rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <section className={`rounded-2xl p-6 shadow-sm transition-colors ${isDark ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                    <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-800'
+                        }`}>
                         <Bell className="w-5 h-5 text-purple-500" />
                         Notifications
                     </h2>
 
                     <label className="flex items-center justify-between cursor-pointer">
-                        <span className="text-gray-700">Enable notifications</span>
+                        <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Enable notifications</span>
                         <div
-                            onClick={() => setSettings(prev => ({ ...prev, notifications: !prev.notifications }))}
+                            onClick={() => setProfileSettings(prev => ({ ...prev, notifications: !prev.notifications }))}
                             className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer
-                                      ${settings.notifications ? 'bg-purple-500' : 'bg-gray-300'}`}
+                                      ${profileSettings.notifications ? 'bg-purple-500' : isDark ? 'bg-gray-600' : 'bg-gray-300'}`}
                         >
                             <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform
-                                          ${settings.notifications ? 'translate-x-6' : 'translate-x-1'}`} />
+                                          ${profileSettings.notifications ? 'translate-x-6' : 'translate-x-1'}`} />
                         </div>
                     </label>
                 </section>
 
-                {/* Save Button */}
+                {/* Save Profile Button - only for authenticated users */}
                 {isAuthenticated && (
                     <button
-                        onClick={handleSave}
+                        onClick={handleSaveProfile}
                         disabled={saving}
                         className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 
                                  text-white font-medium hover:shadow-lg transition-all
                                  disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? 'Saving...' : 'Save Profile'}
                     </button>
                 )}
 

@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Menu, Plus, Sparkles, AlertCircle, WifiOff } from "lucide-react";
 import { useChat } from "../hooks/useChat";
 import { useAuth } from "../hooks/useAuth";
+import { useSettings } from "../hooks/useSettings";
 import TypingIndicator from "./TypingIndicator";
 import Message from "./Message";
 import Sidebar from "./Sidebar";
@@ -23,6 +24,7 @@ const ChatBot = () => {
   } = useChat();
 
   const { user, isAuthenticated } = useAuth();
+  const { chatMode, isDark } = useSettings();
 
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,8 +46,7 @@ const ChatBot = () => {
     if (!content.trim() || isTyping || !isConnected) return;
 
     setInput("");
-    const mode = user?.chat_mode || "guide";
-    await sendMessage(content, mode);
+    await sendMessage(content, chatMode);
     inputRef.current?.focus();
   };
 
@@ -57,7 +58,10 @@ const ChatBot = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
+    <div className={`flex h-screen transition-colors ${isDark
+      ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900'
+      : 'bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50'
+      }`}>
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -69,22 +73,24 @@ const ChatBot = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur-sm border-b border-purple-100">
+        <header className={`flex items-center justify-between px-4 py-3 backdrop-blur-sm border-b transition-colors ${isDark ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-purple-100'
+          }`}>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-purple-100'
+                }`}
               aria-label="Open menu"
             >
-              <Menu className="w-5 h-5 text-gray-600" />
+              <Menu className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
             </button>
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="font-semibold text-gray-800">EmpathyAI</h1>
-                <p className="text-xs text-gray-500">
+                <h1 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>EmpathyAI</h1>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {isConnected ? (
                     <span className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -103,11 +109,12 @@ const ChatBot = () => {
 
           <button
             onClick={startNewSession}
-            className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-purple-100'
+              }`}
             title="New conversation"
             aria-label="Start new conversation"
           >
-            <Plus className="w-5 h-5 text-gray-600" />
+            <Plus className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
           </button>
         </header>
 
@@ -127,6 +134,7 @@ const ChatBot = () => {
                 isAuthenticated={isAuthenticated}
                 userName={user?.display_name}
                 onPromptClick={handleSend}
+                isDark={isDark}
               />
             )}
 
@@ -140,7 +148,8 @@ const ChatBot = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-purple-100">
+        <div className={`p-4 backdrop-blur-sm border-t transition-colors ${isDark ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-purple-100'
+          }`}>
           <div className="max-w-3xl mx-auto">
             <div className="flex gap-3 items-end">
               <div className="flex-1 relative">
@@ -152,11 +161,10 @@ const ChatBot = () => {
                   placeholder={isConnected ? "Share what's on your mind..." : "Waiting for connection..."}
                   disabled={!isConnected}
                   rows={1}
-                  className="w-full px-5 py-4 rounded-2xl bg-white border border-purple-200 
-                           focus:border-purple-400 focus:ring-2 focus:ring-purple-100 
-                           outline-none transition-all resize-none text-gray-700 text-base
-                           disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
-                           shadow-sm"
+                  className={`w-full px-5 py-4 rounded-2xl border outline-none transition-all resize-none text-base shadow-sm ${isDark
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-400 disabled:bg-gray-800 disabled:text-gray-500'
+                    : 'bg-white border-purple-200 text-gray-700 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-100 disabled:text-gray-400'
+                    } disabled:cursor-not-allowed`}
                   style={{ minHeight: '56px', maxHeight: '150px' }}
                 />
               </div>
@@ -171,7 +179,7 @@ const ChatBot = () => {
                 <Send className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-3">
+            <p className={`text-xs text-center mt-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
               EmpathyAI is here to support, not replace professional help
             </p>
           </div>
@@ -182,43 +190,47 @@ const ChatBot = () => {
 };
 
 // Empty state with prompts
-const EmptyState = ({ isAuthenticated, userName }) => (
+const EmptyState = ({ isAuthenticated, userName, onPromptClick, isDark }) => (
   <div className="text-center py-12">
     {/* Logo */}
-    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg shadow-purple-200">
+    <div className={`w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg ${isDark ? 'shadow-purple-500/20' : 'shadow-purple-200'
+      }`}>
       <Sparkles className="w-12 h-12 text-white" />
     </div>
 
     {/* Welcome Text */}
-    <h2 className="text-2xl font-medium text-gray-700 mb-2">
+    <h2 className={`text-2xl font-medium mb-2 ${isDark ? 'text-white' : 'text-gray-700'}`}>
       {isAuthenticated ? `Welcome, ${userName || 'Friend'}!` : 'Welcome to EmpathyAI'}
     </h2>
-    <p className="text-gray-500 max-w-md mx-auto mb-8">
+    <p className={`max-w-md mx-auto mb-8 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
       I'm here to listen and support you. Share what's on your mind,
       and let's talk through it together.
     </p>
 
     {/* Suggested Prompts */}
     <div className="max-w-lg mx-auto">
-      <p className="text-sm text-gray-400 mb-3">Try saying...</p>
+      <p className={`text-sm mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Try saying...</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <PromptChip text="I'm feeling stressed today" onClick={onPromptClick} />
-        <PromptChip text="I need someone to talk to" onClick={onPromptClick} />
-        <PromptChip text="I'm having a rough week" onClick={onPromptClick} />
-        <PromptChip text="I feel anxious about work" onClick={onPromptClick} />
+        <PromptChip text="I'm feeling stressed today" onClick={onPromptClick} isDark={isDark} />
+        <PromptChip text="I need someone to talk to" onClick={onPromptClick} isDark={isDark} />
+        <PromptChip text="I'm having a rough week" onClick={onPromptClick} isDark={isDark} />
+        <PromptChip text="I feel anxious about work" onClick={onPromptClick} isDark={isDark} />
       </div>
     </div>
   </div>
 );
 
-const PromptChip = ({ text, onClick }) => (
+const PromptChip = ({ text, onClick, isDark }) => (
   <button
     onClick={() => onClick && onClick(text)}
-    className="px-4 py-2 rounded-full bg-white border border-purple-200 text-sm text-gray-600
-               hover:border-purple-400 hover:bg-purple-50 transition-all"
+    className={`px-4 py-2 rounded-full border text-sm transition-all ${isDark
+      ? 'bg-gray-800 border-purple-700 text-gray-300 hover:border-purple-500 hover:bg-purple-900/30'
+      : 'bg-white border-purple-200 text-gray-600 hover:border-purple-400 hover:bg-purple-50'
+      }`}
   >
     {text}
   </button>
 );
 
 export default ChatBot;
+

@@ -54,49 +54,6 @@ class ProfileUpdateRequest(BaseModel):
     chat_mode: Optional[str] = None
     notifications_enabled: Optional[bool] = None
 
-# ... (skip helpers) ...
-
-@router.patch("/me", response_model=UserResponse)
-async def update_profile(
-    request: ProfileUpdateRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Update user profile."""
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    # Get fresh user from DB
-    result = await db.execute(select(User).where(User.id == user.id))
-    db_user = result.scalar_one()
-    
-    # Update fields
-    if request.display_name is not None:
-        db_user.display_name = request.display_name
-    if request.avatar_color is not None:
-        db_user.avatar_color = request.avatar_color
-    if request.theme is not None:
-        db_user.theme = request.theme
-    if request.chat_mode is not None:
-        db_user.chat_mode = request.chat_mode
-    if request.notifications_enabled is not None:
-        db_user.notifications_enabled = request.notifications_enabled
-    
-    await db.commit()
-    await db.refresh(db_user)
-    
-    return UserResponse(
-        id=db_user.id,
-        username=db_user.username,
-        email=db_user.email,
-        display_name=db_user.display_name,
-        avatar_color=db_user.avatar_color,
-        theme=db_user.theme,
-        chat_mode=db_user.chat_mode,
-        notifications_enabled=db_user.notifications_enabled,
-        created_at=db_user.created_at
-    )
-
 
 # ============ Helpers ============
 
@@ -174,6 +131,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
             display_name=user.display_name,
             avatar_color=user.avatar_color,
             theme=user.theme,
+            chat_mode=user.chat_mode,
             notifications_enabled=user.notifications_enabled,
             created_at=user.created_at
         ),
@@ -214,6 +172,7 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
             display_name=user.display_name,
             avatar_color=user.avatar_color,
             theme=user.theme,
+            chat_mode=user.chat_mode,
             notifications_enabled=user.notifications_enabled,
             created_at=user.created_at
         ),
@@ -254,6 +213,7 @@ async def get_profile(user: User = Depends(get_current_user)):
         display_name=user.display_name,
         avatar_color=user.avatar_color,
         theme=user.theme,
+        chat_mode=user.chat_mode,
         notifications_enabled=user.notifications_enabled,
         created_at=user.created_at
     )
@@ -280,6 +240,8 @@ async def update_profile(
         db_user.avatar_color = request.avatar_color
     if request.theme is not None:
         db_user.theme = request.theme
+    if request.chat_mode is not None:
+        db_user.chat_mode = request.chat_mode
     if request.notifications_enabled is not None:
         db_user.notifications_enabled = request.notifications_enabled
     
@@ -293,6 +255,7 @@ async def update_profile(
         display_name=db_user.display_name,
         avatar_color=db_user.avatar_color,
         theme=db_user.theme,
+        chat_mode=db_user.chat_mode,
         notifications_enabled=db_user.notifications_enabled,
         created_at=db_user.created_at
     )
