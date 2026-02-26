@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from api.routes import router
 from api.auth import router as auth_router
+from api.admin import router as admin_router
 from core.user import init_db
 from config import settings
 
@@ -52,6 +53,7 @@ app.add_middleware(
 # Include API routes
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/")

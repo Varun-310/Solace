@@ -1,10 +1,11 @@
 /**
  * Main ChatBot Component
- * The primary chat interface for Solace with better space utilization.
+ * Full-screen immersive chat — uses the entire viewport.
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Menu, Plus, Sparkles, AlertCircle, WifiOff } from "lucide-react";
+import { Send, Menu, Plus, Sparkles, AlertCircle, User as UserIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useChat } from "../hooks/useChat";
 import { useAuth } from "../hooks/useAuth";
 import { useSettings } from "../hooks/useSettings";
@@ -24,7 +25,7 @@ const ChatBot = () => {
   } = useChat();
 
   const { user, isAuthenticated } = useAuth();
-  const { chatMode, isDark } = useSettings();
+  const { chatMode } = useSettings();
 
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -58,10 +59,7 @@ const ChatBot = () => {
   };
 
   return (
-    <div className={`flex h-screen transition-colors ${isDark
-      ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900'
-      : 'bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50'
-      }`}>
+    <div className="app-shell" style={{ background: 'var(--color-bg)' }}>
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -70,167 +68,178 @@ const ChatBot = () => {
         onClearHistory={clearHistory}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className={`flex items-center justify-between px-4 py-3 backdrop-blur-sm border-b transition-colors ${isDark ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-purple-100'
-          }`}>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-purple-100'
-                }`}
-              aria-label="Open menu"
-            >
-              <Menu className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-sm">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Solace</h1>
-                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {isConnected ? (
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                      {isAuthenticated ? `Hi, ${user?.display_name || user?.username}!` : 'Ready to listen'}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-amber-600">
-                      <WifiOff className="w-3 h-3" />
-                      Connecting...
-                    </span>
-                  )}
-                </p>
-              </div>
+      {/* Header */}
+      <header className="glass flex items-center justify-between px-4 sm:px-6 shrink-0"
+        style={{ height: '56px', borderBottom: '1px solid var(--color-border-light)' }}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-xl transition-colors hover:bg-black/5"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
+          </button>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'var(--color-primary-light)' }}>
+              <Sparkles className="w-4.5 h-4.5" style={{ color: 'var(--color-primary)' }} />
             </div>
+            <h1 className="font-medium text-sm" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+              Solace
+            </h1>
           </div>
+        </div>
 
+        <div className="flex items-center gap-2">
           <button
             onClick={startNewSession}
-            className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-purple-100'
-              }`}
+            className="p-2 rounded-xl transition-colors hover:bg-black/5"
             title="New conversation"
             aria-label="Start new conversation"
           >
-            <Plus className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+            <Plus className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
-        </header>
 
-        {/* Error Banner */}
-        {error && (
-          <div className="px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2 text-sm text-red-700">
-            <AlertCircle className="w-4 h-4" />
-            {error}
-          </div>
+          {/* Profile Avatar */}
+          <Link to={isAuthenticated ? "/settings" : "/auth"}
+            className="block" title={isAuthenticated ? user?.display_name : "Sign in"}>
+            {isAuthenticated ? (
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-medium transition-transform hover:scale-105"
+                style={{ backgroundColor: user?.avatar_color || 'var(--color-primary)' }}>
+                {user?.display_name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
+                style={{ border: '2px solid var(--color-border)' }}>
+                <UserIcon className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+              </div>
+            )}
+          </Link>
+        </div>
+      </header>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="px-4 sm:px-6 py-2 flex items-center gap-2 text-sm shrink-0"
+          style={{ background: 'var(--color-error-light)', color: 'var(--color-error)', borderBottom: '1px solid #FECACA' }}>
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Messages — full screen */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 py-6">
+        {messages.length === 0 && (
+          <EmptyState
+            isAuthenticated={isAuthenticated}
+            userName={user?.display_name}
+            onPromptClick={handleSend}
+          />
         )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-            {messages.length === 0 && (
-              <EmptyState
-                isAuthenticated={isAuthenticated}
-                userName={user?.display_name}
-                onPromptClick={handleSend}
-                isDark={isDark}
-              />
-            )}
+        <div className="space-y-5">
+          {messages.map((msg, idx) => (
+            <Message key={idx} message={msg} />
+          ))}
 
-            {messages.map((msg, idx) => (
-              <Message key={idx} message={msg} />
-            ))}
-
-            {isTyping && <TypingIndicator />}
-            <div ref={messagesEndRef} />
-          </div>
+          {isTyping && <TypingIndicator />}
+          <div ref={messagesEndRef} />
         </div>
+      </div>
 
-        {/* Input Area */}
-        <div className={`p-4 backdrop-blur-sm border-t transition-colors ${isDark ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-purple-100'
-          }`}>
-          <div className="max-w-3xl mx-auto">
-            <div className="flex gap-3 items-end">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={isConnected ? "Share what's on your mind..." : "Waiting for connection..."}
-                  disabled={!isConnected}
-                  rows={1}
-                  className={`w-full px-5 py-4 rounded-2xl border outline-none transition-all resize-none text-base shadow-sm ${isDark
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-purple-400 disabled:bg-gray-800 disabled:text-gray-500'
-                    : 'bg-white border-purple-200 text-gray-700 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 disabled:bg-gray-100 disabled:text-gray-400'
-                    } disabled:cursor-not-allowed`}
-                  style={{ minHeight: '56px', maxHeight: '150px' }}
-                />
-              </div>
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isTyping || !isConnected}
-                className="p-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 
-                         text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
-                         hover:shadow-xl hover:scale-105 transition-all duration-200"
-                aria-label="Send message"
-              >
-                <Send className="w-5 h-5" />
-              </button>
-            </div>
-            <p className={`text-xs text-center mt-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              Solace is here to support, not replace professional help
-            </p>
+      {/* Input Area — full width */}
+      <div className="glass shrink-0 px-4 sm:px-8 lg:px-16 py-3"
+        style={{ borderTop: '1px solid var(--color-border-light)' }}>
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 relative">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isConnected ? "What's on your mind..." : "Waiting for connection..."}
+              disabled={!isConnected}
+              rows={1}
+              className="w-full px-5 py-3.5 rounded-2xl border outline-none transition-all resize-none text-sm"
+              style={{
+                background: 'var(--color-surface)',
+                borderColor: input ? 'var(--color-primary)' : 'var(--color-border)',
+                color: 'var(--color-text)',
+                fontFamily: 'var(--font-body)',
+                minHeight: '52px',
+                maxHeight: '140px'
+              }}
+            />
           </div>
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isTyping || !isConnected}
+            className="p-3.5 rounded-2xl text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-md"
+            style={{ background: 'var(--color-primary)' }}
+            aria-label="Send message"
+          >
+            <Send className="w-5 h-5" />
+          </button>
         </div>
+        <p className="text-xs text-center mt-2" style={{ color: 'var(--color-text-muted)' }}>
+          Solace is here to support, not replace professional help
+        </p>
       </div>
     </div>
   );
 };
 
-// Empty state with prompts
-const EmptyState = ({ isAuthenticated, userName, onPromptClick, isDark }) => (
-  <div className="text-center py-12">
-    {/* Logo */}
-    <div className={`w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg ${isDark ? 'shadow-purple-500/20' : 'shadow-purple-200'
-      }`}>
-      <Sparkles className="w-12 h-12 text-white" />
+// Empty state
+const EmptyState = ({ isAuthenticated, userName, onPromptClick }) => (
+  <div className="flex flex-col items-center justify-center py-16 sm:py-24 animate-fade-in">
+    <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
+      style={{ background: 'var(--color-primary-light)' }}>
+      <Sparkles className="w-10 h-10" style={{ color: 'var(--color-primary)' }} />
     </div>
 
-    {/* Welcome Text */}
-    <h2 className={`text-2xl font-medium mb-2 ${isDark ? 'text-white' : 'text-gray-700'}`}>
-      {isAuthenticated ? `Welcome, ${userName || 'Friend'}!` : 'Welcome to Solace'}
+    <h2 className="text-2xl sm:text-3xl font-medium mb-2 text-center"
+      style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+      {isAuthenticated ? `Welcome back, ${userName || 'Friend'}` : 'Welcome to Solace'}
     </h2>
-    <p className={`max-w-md mx-auto mb-8 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+    <p className="max-w-lg mx-auto mb-10 text-center text-sm sm:text-base"
+      style={{ color: 'var(--color-text-secondary)' }}>
       I'm here to listen and support you. Share what's on your mind,
       and let's talk through it together.
     </p>
 
-    {/* Suggested Prompts */}
-    <div className="max-w-lg mx-auto">
-      <p className={`text-sm mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Try saying...</p>
+    <div className="w-full">
+      <p className="text-xs mb-3 text-center" style={{ color: 'var(--color-text-muted)' }}>Try saying...</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <PromptChip text="I'm feeling stressed today" onClick={onPromptClick} isDark={isDark} />
-        <PromptChip text="I need someone to talk to" onClick={onPromptClick} isDark={isDark} />
-        <PromptChip text="I'm having a rough week" onClick={onPromptClick} isDark={isDark} />
-        <PromptChip text="I feel anxious about work" onClick={onPromptClick} isDark={isDark} />
+        <PromptChip text="I'm feeling stressed today" onClick={onPromptClick} />
+        <PromptChip text="I need someone to talk to" onClick={onPromptClick} />
+        <PromptChip text="I'm having a rough week" onClick={onPromptClick} />
+        <PromptChip text="I feel anxious about work" onClick={onPromptClick} />
       </div>
     </div>
   </div>
 );
 
-const PromptChip = ({ text, onClick, isDark }) => (
+const PromptChip = ({ text, onClick }) => (
   <button
     onClick={() => onClick && onClick(text)}
-    className={`px-4 py-2 rounded-full border text-sm transition-all ${isDark
-      ? 'bg-gray-800 border-purple-700 text-gray-300 hover:border-purple-500 hover:bg-purple-900/30'
-      : 'bg-white border-purple-200 text-gray-600 hover:border-purple-400 hover:bg-purple-50'
-      }`}
+    className="px-4 py-2 rounded-full border text-sm transition-all hover:shadow-sm"
+    style={{
+      background: 'var(--color-surface)',
+      borderColor: 'var(--color-border)',
+      color: 'var(--color-text-secondary)',
+      fontFamily: 'var(--font-body)'
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.borderColor = 'var(--color-primary)';
+      e.currentTarget.style.color = 'var(--color-primary)';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.borderColor = 'var(--color-border)';
+      e.currentTarget.style.color = 'var(--color-text-secondary)';
+    }}
   >
     {text}
   </button>
 );
 
 export default ChatBot;
-

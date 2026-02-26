@@ -1,6 +1,6 @@
 /**
  * Authentication API Service
- * Handles user registration, login, and profile management.
+ * Handles user registration, login, profile management, and encryption salt.
  */
 
 const API_BASE = 'http://localhost:8000/api/auth';

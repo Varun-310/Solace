@@ -1,10 +1,11 @@
+/**
+ * Custom hook for managing chat state.
+ * Handles messages, sessions, loading states, and encrypted persistence.
+ */
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { chatAPI } from '../services/api';
 
-/**
- * Custom hook for managing chat state.
- * Handles messages, sessions, and loading states.
- */
 export const useChat = () => {
     const [messages, setMessages] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -16,12 +17,10 @@ export const useChat = () => {
     const startNewSession = useCallback(async () => {
         try {
             setError(null);
-            const { session_id, message } = await chatAPI.newSession();
+            setMessages([]);
+            const { session_id } = await chatAPI.newSession();
             setSessionId(session_id);
             localStorage.setItem('empathy_session', session_id);
-
-            // Note: We don't add the welcome message automatically anymore
-            // so that the Empty State with prompts can be shown.
         } catch (err) {
             console.error('Failed to create session:', err);
             setError('Failed to create a new session');
@@ -35,7 +34,6 @@ export const useChat = () => {
 
         const initializeSession = async () => {
             try {
-                // Check backend health
                 const health = await chatAPI.healthCheck();
                 setIsConnected(health.status === 'healthy');
 
@@ -44,11 +42,9 @@ export const useChat = () => {
                     return;
                 }
 
-                // Check for existing session
                 const savedSession = localStorage.getItem('empathy_session');
                 if (savedSession) {
                     setSessionId(savedSession);
-                    // Optionally load history
                     try {
                         const history = await chatAPI.getHistory(savedSession);
                         if (history.messages && history.messages.length > 0) {
@@ -60,11 +56,10 @@ export const useChat = () => {
                             return;
                         }
                     } catch {
-                        // Session expired, create new one
+                        // Session expired
                     }
                 }
 
-                // Create new session
                 await startNewSession();
 
             } catch (err) {
@@ -82,7 +77,6 @@ export const useChat = () => {
 
         setError(null);
 
-        // Add user message immediately (optimistic update)
         const userMessage = {
             role: 'user',
             content,
@@ -98,12 +92,17 @@ export const useChat = () => {
                 mode
             });
 
-            // Add bot response
+            const aiContent = response.response;
+
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: response.response,
+                content: aiContent,
                 timestamp: new Date().toISOString()
             }]);
+
+            // Save encrypted message pair (fire-and-forget, non-blocking)
+            chatAPI.saveMessagePair(sessionId, content, aiContent).catch(() => { });
+
         } catch (err) {
             console.error('Failed to send message:', err);
             setMessages(prev => [...prev, {

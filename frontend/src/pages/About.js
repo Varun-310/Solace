@@ -1,6 +1,6 @@
 /**
  * About Page
- * Rich information about Solace with features, technology, and privacy info.
+ * Immersive storytelling layout — light only.
  */
 
 import { ArrowLeft, Heart, Shield, Brain, MessageCircle, Sparkles, Cpu, Zap, Lock } from "lucide-react";
@@ -8,85 +8,75 @@ import { Link } from "react-router-dom";
 
 const About = () => {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
+        <div className="app-shell" style={{ background: 'var(--color-bg)', overflowY: 'auto' }}>
             {/* Header */}
-            <header className="px-4 py-3 bg-white/80 backdrop-blur-sm border-b border-purple-100">
-                <div className="max-w-3xl mx-auto flex items-center gap-3">
-                    <Link
-                        to="/"
-                        className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
-                    >
-                        <ArrowLeft className="w-5 h-5 text-gray-600" />
-                    </Link>
-                    <h1 className="font-semibold text-gray-800">About Solace</h1>
-                </div>
+            <header className="glass shrink-0 px-4 sm:px-6 flex items-center gap-3"
+                style={{ height: '56px', borderBottom: '1px solid var(--color-border-light)' }}>
+                <Link to="/" className="p-2 rounded-xl transition-colors hover:bg-black/5">
+                    <ArrowLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
+                </Link>
+                <h1 className="font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                    About Solace
+                </h1>
             </header>
 
             {/* Content */}
-            <main className="max-w-3xl mx-auto px-4 py-8">
+            <main className="px-4 sm:px-8 lg:px-16 py-8">
                 {/* Hero */}
-                <div className="text-center mb-12">
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-200">
-                        <Heart className="w-12 h-12 text-white" />
+                <div className="text-center mb-14 animate-fade-in">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center"
+                        style={{ background: 'var(--color-primary-light)' }}>
+                        <Heart className="w-10 h-10" style={{ color: 'var(--color-primary)' }} />
                     </div>
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+                    <h2 className="text-4xl sm:text-5xl font-semibold mb-3"
+                        style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
                         Solace
                     </h2>
-                    <p className="text-xl text-gray-600 max-w-md mx-auto">
+                    <p className="text-lg max-w-xl mx-auto" style={{ color: 'var(--color-text-secondary)' }}>
                         A compassionate mental health companion that truly understands how you feel
                     </p>
                 </div>
 
-                {/* Features Grid */}
-                <div className="grid md:grid-cols-2 gap-4 mb-12">
-                    <FeatureCard
-                        icon={Brain}
-                        title="Emotion Detection"
+                {/* Features */}
+                <div className="grid sm:grid-cols-2 gap-4 mb-12">
+                    <FeatureCard icon={Brain} title="Emotion Detection"
                         description="Recognizes 27 different emotions using advanced NLP to understand your emotional state."
-                        color="from-purple-500 to-indigo-500"
-                    />
-                    <FeatureCard
-                        icon={MessageCircle}
-                        title="Contextual Memory"
+                        bg="var(--color-primary-light)" fg="var(--color-primary)" />
+                    <FeatureCard icon={MessageCircle} title="Contextual Memory"
                         description="Remembers your conversation history to provide coherent, personalized support."
-                        color="from-pink-500 to-rose-500"
-                    />
-                    <FeatureCard
-                        icon={Sparkles}
-                        title="Empathetic Responses"
+                        bg="#FAECD5" fg="var(--color-user-msg)" />
+                    <FeatureCard icon={Sparkles} title="Empathetic Responses"
                         description="Powered by local AI models that generate warm, understanding responses."
-                        color="from-amber-500 to-orange-500"
-                    />
-                    <FeatureCard
-                        icon={Shield}
-                        title="Privacy First"
-                        description="All processing happens locally. Your conversations never leave your device."
-                        color="from-emerald-500 to-teal-500"
-                    />
+                        bg="#E0F2FE" fg="#0284C7" />
+                    <FeatureCard icon={Shield} title="Privacy First"
+                        description="Your conversations are encrypted. Even the admin cannot read your messages."
+                        bg="#CCFBF1" fg="#0D9488" />
                 </div>
 
-                {/* Technology Section */}
-                <section className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <Cpu className="w-5 h-5 text-purple-500" />
+                {/* Technology */}
+                <section className="rounded-2xl p-5 sm:p-6 mb-8"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)' }}>
+                    <h3 className="text-base font-medium mb-4 flex items-center gap-2"
+                        style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                        <Cpu className="w-4.5 h-4.5" style={{ color: 'var(--color-primary)' }} />
                         Technology
                     </h3>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <TechBadge icon="🧠" name="Gemma 3" desc="Local LLM" />
-                        <TechBadge icon="💜" name="RoBERTa" desc="Emotion AI" />
+                        <TechBadge icon="💚" name="RoBERTa" desc="Emotion AI" />
                         <TechBadge icon="⚡" name="FastAPI" desc="Backend" />
                         <TechBadge icon="⚛️" name="React" desc="Frontend" />
                     </div>
                 </section>
 
                 {/* How It Works */}
-                <section className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-purple-500" />
+                <section className="rounded-2xl p-5 sm:p-6 mb-8"
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)' }}>
+                    <h3 className="text-base font-medium mb-4 flex items-center gap-2"
+                        style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                        <Zap className="w-4.5 h-4.5" style={{ color: 'var(--color-primary)' }} />
                         How It Works
                     </h3>
-
                     <div className="space-y-4">
                         <Step number="1" title="Share Your Thoughts" desc="Type a message about how you're feeling" />
                         <Step number="2" title="Emotion Analysis" desc="AI detects your emotional state (hidden from view)" />
@@ -95,43 +85,46 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* Privacy Section */}
-                <section className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white mb-8">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Lock className="w-5 h-5" />
+                {/* Privacy */}
+                <section className="rounded-2xl p-5 sm:p-6 mb-8"
+                    style={{ background: 'var(--color-primary-light)', border: '1px solid #B7E4C7' }}>
+                    <h3 className="text-base font-medium mb-3 flex items-center gap-2"
+                        style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary-hover)' }}>
+                        <Lock className="w-4.5 h-4.5" />
                         Your Privacy Matters
                     </h3>
-                    <ul className="space-y-2 text-emerald-50">
+                    <ul className="space-y-2 text-sm" style={{ color: '#1B4332' }}>
                         <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
-                            100% local processing - no cloud services
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-primary)' }} />
+                            End-to-end encryption — messages unreadable in database
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
-                            No API keys or external data sharing
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-primary)' }} />
+                            Even the admin cannot read your conversations
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-primary)' }} />
                             Sessions auto-expire after 24 hours
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-primary)' }} />
                             Open source and auditable
                         </li>
                     </ul>
                 </section>
 
                 {/* Disclaimer */}
-                <section className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8">
-                    <h3 className="font-semibold text-amber-800 mb-2">⚠️ Important Notice</h3>
-                    <p className="text-amber-700 mb-4">
+                <section className="rounded-2xl p-5 sm:p-6 mb-8"
+                    style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                    <h3 className="font-medium text-sm mb-2" style={{ color: '#92400E', fontFamily: 'var(--font-heading)' }}>
+                        ⚠️ Important Notice
+                    </h3>
+                    <p className="text-sm mb-4" style={{ color: '#A16207' }}>
                         Solace is a supportive tool, not a replacement for professional mental health care.
-                        If you're experiencing a crisis, please contact a professional.
                     </p>
-
-                    <div className="bg-white rounded-xl p-4">
-                        <h4 className="font-medium text-gray-800 mb-2">Crisis Helplines (India)</h4>
-                        <ul className="space-y-1 text-sm text-gray-600">
+                    <div className="rounded-xl p-4" style={{ background: 'var(--color-surface)' }}>
+                        <h4 className="font-medium text-xs mb-2" style={{ color: 'var(--color-text)' }}>Crisis Helplines (India)</h4>
+                        <ul className="space-y-1 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                             <li><strong>iCall:</strong> 9152987821 (Mon-Sat, 8am-10pm)</li>
                             <li><strong>Vandrevala Foundation:</strong> 1860-2662-345 (24/7)</li>
                             <li><strong>NIMHANS:</strong> 080-46110007</li>
@@ -140,7 +133,7 @@ const About = () => {
                 </section>
 
                 {/* Footer */}
-                <div className="text-center text-gray-500 text-sm">
+                <div className="text-center text-xs pb-8" style={{ color: 'var(--color-text-muted)' }}>
                     <p>Built with ❤️ for mental health awareness</p>
                     <p className="mt-1">Version 2.0.0</p>
                 </div>
@@ -149,32 +142,36 @@ const About = () => {
     );
 };
 
-const FeatureCard = ({ icon: Icon, title, description, color }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-4`}>
-            <Icon className="w-6 h-6 text-white" />
+const FeatureCard = ({ icon: Icon, title, description, bg, fg }) => (
+    <div className="rounded-2xl p-5 transition-shadow hover:shadow-sm"
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)' }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+            style={{ background: bg, color: fg }}>
+            <Icon className="w-5 h-5" />
         </div>
-        <h3 className="font-semibold text-gray-800 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600">{description}</p>
+        <h3 className="font-medium text-sm mb-1" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>{title}</h3>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>{description}</p>
     </div>
 );
 
 const TechBadge = ({ icon, name, desc }) => (
-    <div className="text-center p-3 rounded-xl bg-gray-50 hover:bg-purple-50 transition-colors">
-        <span className="text-2xl">{icon}</span>
-        <p className="font-medium text-gray-800 text-sm mt-1">{name}</p>
-        <p className="text-xs text-gray-500">{desc}</p>
+    <div className="text-center p-3 rounded-xl transition-colors"
+        style={{ background: 'var(--color-bg)' }}>
+        <span className="text-xl">{icon}</span>
+        <p className="font-medium text-xs mt-1" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}>{name}</p>
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{desc}</p>
     </div>
 );
 
 const Step = ({ number, title, desc }) => (
-    <div className="flex gap-4">
-        <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+    <div className="flex gap-3">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center font-medium text-xs shrink-0"
+            style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontFamily: 'var(--font-heading)' }}>
             {number}
         </div>
         <div>
-            <h4 className="font-medium text-gray-800">{title}</h4>
-            <p className="text-sm text-gray-500">{desc}</p>
+            <h4 className="font-medium text-sm" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}>{title}</h4>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{desc}</p>
         </div>
     </div>
 );

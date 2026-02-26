@@ -79,6 +79,29 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
+    const googleLogin = useCallback(async (credential) => {
+        setError(null);
+        try {
+            const response = await fetch('http://localhost:8000/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Google login failed');
+            }
+            const data = await response.json();
+            localStorage.setItem('empathy_token', data.token);
+            localStorage.setItem('empathy_user', JSON.stringify(data.user));
+            setUser(data.user);
+            return data;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        }
+    }, []);
+
     const value = {
         user,
         loading,
@@ -86,6 +109,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         login,
         register,
+        googleLogin,
         logout,
         updateProfile,
         clearError: () => setError(null)

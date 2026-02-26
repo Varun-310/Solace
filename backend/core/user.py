@@ -1,9 +1,9 @@
 """
 User Model and Authentication
-Simple local user system without external authentication providers.
+Database models for users, sessions, chat messages, and password reset.
 """
 
-from sqlalchemy import Column, String, DateTime, Boolean, Text
+from sqlalchemy import Column, String, DateTime, Boolean, Text, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -24,11 +24,12 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(128), nullable=False)
     display_name = Column(String(100), nullable=True)
-    avatar_color = Column(String(7), default="#8B5CF6")  # Purple default
+    avatar_color = Column(String(7), default="#2D6A4F")
+    encryption_salt = Column(String(32), nullable=False)  # Per-user salt for chat encryption
     
     # Profile settings
     theme = Column(String(20), default="light")
-    chat_mode = Column(String(20), default="guide")  # "guide" or "friend"
+    chat_mode = Column(String(20), default="guide")
     notifications_enabled = Column(Boolean, default=True)
     
     # Metadata
@@ -54,7 +55,8 @@ class User(Base):
             email=email.lower(),
             password_hash=cls._hash_password(password),
             display_name=display_name or username,
-            avatar_color=f"#{secrets.token_hex(3)}"
+            avatar_color=f"#{secrets.token_hex(3)}",
+            encryption_salt=secrets.token_hex(16)
         )
 
 
@@ -82,6 +84,36 @@ class UserSession(Base):
         return datetime.utcnow() < self.expires_at
 
 
+class ChatMessage(Base):
+    """Encrypted chat message model."""
+    __tablename__ = "chat_messages"
+    
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    session_id = Column(String(36), nullable=False, index=True)
+    encrypted_content = Column(Text, nullable=False)  # base64 ciphertext
+    iv = Column(String(32), nullable=False)            # base64 IV
+    role = Column(String(10), nullable=False)          # "user" or "assistant"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PasswordReset(Base):
+    """Password reset OTP tracking."""
+    __tablename__ = "password_resets"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(100), nullable=False, index=True)
+    otp = Column(String(6), nullable=False)
+    reset_token = Column(String(64), nullable=True)  # Issued after OTP verification
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    
+    @property
+    def is_valid(self) -> bool:
+        return not self.used and datetime.utcnow() < self.expires_at
+
+
 # Database setup
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./empathy.db")
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -95,7 +127,6 @@ async def init_db():
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
         print(f"Database initialization note: {e}")
-        # Continue anyway as tables probably exist
 
 
 async def get_db():

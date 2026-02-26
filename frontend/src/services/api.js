@@ -1,7 +1,10 @@
 /**
  * API client for Solace backend.
  * Handles all communication with the FastAPI server.
+ * Includes auth headers for secured endpoints.
  */
+
+import { authAPI } from './auth';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -11,13 +14,14 @@ const API_BASE = 'http://localhost:8000/api';
 export const chatAPI = {
   /**
    * Send a message and get a response.
-   * @param {Object} data - { message: string, session_id?: string }
-   * @returns {Promise<{ response: string, session_id: string }>}
    */
   async sendMessage({ message, session_id, mode }) {
     const response = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authAPI.getAuthHeaders()
+      },
       body: JSON.stringify({ message, session_id, mode }),
     });
 
@@ -31,11 +35,11 @@ export const chatAPI = {
 
   /**
    * Create a new chat session.
-   * @returns {Promise<{ session_id: string, message: string }>}
    */
   async newSession() {
     const response = await fetch(`${API_BASE}/session/new`, {
       method: 'POST',
+      headers: authAPI.getAuthHeaders()
     });
 
     if (!response.ok) {
@@ -47,27 +51,53 @@ export const chatAPI = {
 
   /**
    * Clear a session's history.
-   * @param {string} sessionId 
    */
   async clearSession(sessionId) {
     const response = await fetch(`${API_BASE}/session/${sessionId}`, {
       method: 'DELETE',
+      headers: authAPI.getAuthHeaders()
     });
     return response.json();
   },
 
   /**
    * Get conversation history.
-   * @param {string} sessionId 
    */
   async getHistory(sessionId) {
-    const response = await fetch(`${API_BASE}/session/${sessionId}/history`);
+    const response = await fetch(`${API_BASE}/session/${sessionId}/history`, {
+      headers: authAPI.getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  /**
+   * Save an encrypted message pair (server-side encryption).
+   */
+  async saveMessagePair(sessionId, userMsg, aiMsg) {
+    if (!authAPI.isAuthenticated()) return; // Only for logged-in users
+
+    const response = await fetch(
+      `${API_BASE}/chat/save-pair?user_msg=${encodeURIComponent(userMsg)}&ai_msg=${encodeURIComponent(aiMsg)}&session_id=${sessionId}`,
+      {
+        method: 'POST',
+        headers: authAPI.getAuthHeaders()
+      }
+    );
+    return response.json();
+  },
+
+  /**
+   * Get encrypted message history for a session.
+   */
+  async getEncryptedHistory(sessionId) {
+    const response = await fetch(`${API_BASE}/chat/encrypted-history/${sessionId}`, {
+      headers: authAPI.getAuthHeaders()
+    });
     return response.json();
   },
 
   /**
    * Check if backend is healthy.
-   * @returns {Promise<{ status: string, ollama: string, model: string, redis: string }>}
    */
   async healthCheck() {
     const response = await fetch(`${API_BASE}/health`);

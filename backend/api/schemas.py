@@ -14,14 +14,13 @@ class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
     message: str
     session_id: Optional[str] = None
-    mode: Optional[str] = "guide"  # "guide" or "friend"
+    mode: Optional[str] = "guide"
 
 
 class ChatResponse(BaseModel):
     """Response from chat endpoint."""
     response: str
     session_id: str
-    # Note: Emotion data intentionally excluded (hidden from user)
 
 
 # ============ Session Schemas ============
@@ -62,3 +61,47 @@ class HealthResponse(BaseModel):
     ollama: str
     model: str
     redis: str
+
+
+# ============ Encrypted Message Schemas ============
+
+class SaveEncryptedMessageRequest(BaseModel):
+    """Request to save an encrypted message."""
+    session_id: str
+    encrypted_content: str  # base64 ciphertext
+    iv: str                 # base64 IV
+    role: str               # "user" or "assistant"
+
+
+class EncryptedMessageResponse(BaseModel):
+    """A single encrypted message."""
+    id: str
+    encrypted_content: str
+    iv: str
+    role: str
+    created_at: datetime
+
+
+class EncryptedHistoryResponse(BaseModel):
+    """Response for encrypted message history."""
+    messages: List[EncryptedMessageResponse]
+    message_count: int
+
+
+# ============ Password Reset Schemas ============
+
+class ForgotPasswordRequest(BaseModel):
+    """Request to initiate password reset."""
+    email: str
+
+
+class VerifyOtpRequest(BaseModel):
+    """Request to verify OTP."""
+    email: str
+    otp: str
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request to set new password."""
+    reset_token: str
+    new_password: str

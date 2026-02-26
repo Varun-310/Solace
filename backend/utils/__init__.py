@@ -1,3 +1,0 @@
-"""
-Solace Utils Package
-"""

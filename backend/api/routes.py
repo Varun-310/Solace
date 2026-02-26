@@ -1,28 +1,32 @@
 """
 API Routes for Solace
-Clean, RESTful endpoints for chat functionality.
+RESTful endpoints for chat, encrypted storage, and health checks.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Header
+from typing import Optional
 import uuid
 
 from .schemas import (
     ChatRequest, ChatResponse,
     SessionResponse, SessionClearResponse,
     HistoryResponse, MessageHistory,
-    HealthResponse
+    HealthResponse,
+    SaveEncryptedMessageRequest, EncryptedMessageResponse, EncryptedHistoryResponse
 )
 from config import settings
-
-# Import core services (will be implemented in Phase 2)
-# For now, using placeholder implementations
 from core.emotion import EmotionClassifier
 from core.context import ContextManager
 from core.llm import LLMService
+from core.user import User, ChatMessage, AsyncSessionLocal
+from utils.encryption import encrypt_message, decrypt_message
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from .auth import get_current_user
 
 router = APIRouter()
 
-# Initialize services (lazy loading in production)
+# Initialize services (lazy loading)
 emotion_classifier = None
 context_manager = None
 llm_service = None
@@ -49,6 +53,11 @@ def get_services():
     return emotion_classifier, context_manager, llm_service
 
 
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
 # ============ Health Endpoint ============
 
 @router.get("/health", response_model=HealthResponse)
@@ -56,7 +65,6 @@ async def health_check():
     """Check if all services are running."""
     import ollama
     
-    # Check Ollama
     ollama_status = "disconnected"
     try:
         client = ollama.Client(host=settings.OLLAMA_HOST)
@@ -65,7 +73,6 @@ async def health_check():
     except Exception:
         pass
     
-    # Check Redis
     redis_status = "disconnected"
     try:
         import redis.asyncio as redis_client
@@ -74,9 +81,8 @@ async def health_check():
         redis_status = "connected"
         await r.close()
     except Exception:
-        redis_status = "using_fallback"  # In-memory storage will be used
+        redis_status = "using_fallback"
     
-    # Overall status - healthy if Ollama works (Redis has fallback)
     status = "healthy" if ollama_status == "connected" else "degraded"
     
     return HealthResponse(
@@ -93,30 +99,22 @@ async def health_check():
 async def chat(request: ChatRequest):
     """
     Main chat endpoint.
-    
-    Processes user message through:
-    1. Emotion classification (hidden from response)
-    2. Context retrieval
-    3. LLM response generation
+    Processes: emotion → context → LLM → response
     """
     _, context_mgr, llm_svc = get_services()
     
-    # Create or use existing session
     session_id = request.session_id or str(uuid.uuid4())
     
     try:
-        # 1. Add user message to context (emotion classified internally)
         await context_mgr.add_message(
             session_id=session_id,
             role="user",
             content=request.message
         )
         
-        # 2. Get conversation context and emotional summary
         context = await context_mgr.get_context(session_id)
         emotional_summary = await context_mgr.get_emotional_summary(session_id)
         
-        # 3. Generate empathetic response
         response_text = await llm_svc.generate_response(
             user_message=request.message,
             context=context,
@@ -124,14 +122,12 @@ async def chat(request: ChatRequest):
             mode=request.mode or "guide"
         )
         
-        # 4. Store bot response in context
         await context_mgr.add_message(
             session_id=session_id,
             role="assistant",
             content=response_text
         )
         
-        # Return response (emotion data intentionally excluded)
         return ChatResponse(
             response=response_text,
             session_id=session_id
@@ -185,4 +181,104 @@ async def get_history(session_id: str):
         session_id=session_id,
         messages=messages,
         message_count=context["message_count"]
+    )
+
+
+# ============ Encrypted Message Storage ============
+
+@router.post("/chat/save-encrypted")
+async def save_encrypted_message(
+    request: SaveEncryptedMessageRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Save an encrypted message to persistent storage."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    msg = ChatMessage(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        session_id=request.session_id,
+        encrypted_content=request.encrypted_content,
+        iv=request.iv,
+        role=request.role
+    )
+    db.add(msg)
+    await db.commit()
+    
+    return {"status": "saved", "id": msg.id}
+
+
+@router.post("/chat/save-pair")
+async def save_message_pair(
+    user_msg: str,
+    ai_msg: str,
+    session_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Encrypt and save a user+AI message pair server-side."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Encrypt user message
+    user_enc = encrypt_message(user_msg, user.encryption_salt)
+    user_record = ChatMessage(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        session_id=session_id,
+        encrypted_content=user_enc["ciphertext"],
+        iv=user_enc["iv"],
+        role="user"
+    )
+    
+    # Encrypt AI message
+    ai_enc = encrypt_message(ai_msg, user.encryption_salt)
+    ai_record = ChatMessage(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        session_id=session_id,
+        encrypted_content=ai_enc["ciphertext"],
+        iv=ai_enc["iv"],
+        role="assistant"
+    )
+    
+    db.add(user_record)
+    db.add(ai_record)
+    await db.commit()
+    
+    return {"status": "saved"}
+
+
+@router.get("/chat/encrypted-history/{session_id}", response_model=EncryptedHistoryResponse)
+async def get_encrypted_history(
+    session_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get encrypted message history (decrypted server-side for the authenticated user)."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.user_id == user.id, ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at.asc())
+    )
+    messages = result.scalars().all()
+    
+    response_messages = []
+    for msg in messages:
+        response_messages.append(EncryptedMessageResponse(
+            id=msg.id,
+            encrypted_content=msg.encrypted_content,
+            iv=msg.iv,
+            role=msg.role,
+            created_at=msg.created_at
+        ))
+    
+    return EncryptedHistoryResponse(
+        messages=response_messages,
+        message_count=len(response_messages)
     )

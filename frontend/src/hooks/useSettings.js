@@ -1,6 +1,6 @@
 /**
  * Settings Context
- * Manages app settings (theme, chat mode) for both guests and authenticated users.
+ * Manages app settings (chat mode only — light theme always).
  * Persists settings to localStorage for guests, syncs with backend for logged-in users.
  */
 
@@ -12,7 +12,6 @@ const SettingsContext = createContext(null);
 const STORAGE_KEY = 'empathy_settings';
 
 const DEFAULT_SETTINGS = {
-    theme: 'light',
     chatMode: 'guide'
 };
 
@@ -23,7 +22,6 @@ export const SettingsProvider = ({ children }) => {
 
     // Load settings on mount
     useEffect(() => {
-        // First try to load from localStorage (guest settings)
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
@@ -41,24 +39,14 @@ export const SettingsProvider = ({ children }) => {
         if (isAuthenticated && user) {
             setSettings(prev => ({
                 ...prev,
-                theme: user.theme || prev.theme,
                 chatMode: user.chat_mode || prev.chatMode
             }));
         }
     }, [isAuthenticated, user]);
 
-    // Apply theme to document
+    // Save to localStorage when settings change
     useEffect(() => {
         if (!loaded) return;
-
-        const root = document.documentElement;
-        if (settings.theme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-
-        // Also save to localStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     }, [settings, loaded]);
 
@@ -70,7 +58,6 @@ export const SettingsProvider = ({ children }) => {
         if (isAuthenticated && updateProfile) {
             try {
                 const payload = {};
-                if (key === 'theme') payload.theme = value;
                 if (key === 'chatMode') payload.chatMode = value;
                 await updateProfile(payload);
             } catch (err) {
@@ -79,16 +66,12 @@ export const SettingsProvider = ({ children }) => {
         }
     }, [isAuthenticated, updateProfile]);
 
-    const setTheme = useCallback((theme) => updateSetting('theme', theme), [updateSetting]);
     const setChatMode = useCallback((mode) => updateSetting('chatMode', mode), [updateSetting]);
 
     return (
         <SettingsContext.Provider value={{
-            theme: settings.theme,
             chatMode: settings.chatMode,
-            setTheme,
-            setChatMode,
-            isDark: settings.theme === 'dark'
+            setChatMode
         }}>
             {children}
         </SettingsContext.Provider>
