@@ -3,9 +3,11 @@
  * Clean slide-out drawer — mobile navigation.
  */
 
-import { X, Plus, MessageCircle, Settings, Info, LogOut, User } from "lucide-react";
+import { X, Plus, MessageCircle, Settings, Info, LogOut, User, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+
+const ADMIN_EMAIL = "itsvarun310@gmail.com";
 
 const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
     const { user, isAuthenticated, logout } = useAuth();
@@ -95,6 +97,9 @@ const Sidebar = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                     <NavItem icon={MessageCircle} label="Chat" to="/" onClick={onClose} active />
                     <NavItem icon={Settings} label="Settings" to="/settings" onClick={onClose} />
                     <NavItem icon={Info} label="About" to="/about" onClick={onClose} />
+                    {isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL && (
+                        <NavItem icon={Shield} label="Admin Panel" to="/s0lace-ctrl" onClick={onClose} />
+                    )}
                 </nav>
 
                 {/* Footer */}

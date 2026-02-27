@@ -35,12 +35,7 @@ export const useChat = () => {
         const initializeSession = async () => {
             try {
                 const health = await chatAPI.healthCheck();
-                setIsConnected(health.status === 'healthy');
-
-                if (health.ollama !== 'connected') {
-                    setError('Ollama is not running. Please start it with: ollama serve');
-                    return;
-                }
+                setIsConnected(health.status === 'healthy' || health.status === 'degraded');
 
                 const savedSession = localStorage.getItem('empathy_session');
                 if (savedSession) {

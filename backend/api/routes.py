@@ -26,29 +26,39 @@ from .auth import get_current_user
 
 router = APIRouter()
 
-# Initialize services (lazy loading)
+# Initialize services (eager loading at startup)
 emotion_classifier = None
 context_manager = None
 llm_service = None
+_services_lock = __import__('threading').Lock()
+
+
+def preload_services():
+    """Eagerly initialize all services. Called from main.py at startup."""
+    global emotion_classifier, context_manager, llm_service
+    with _services_lock:
+        if emotion_classifier is None:
+            emotion_classifier = EmotionClassifier()
+        if context_manager is None:
+            context_manager = ContextManager(
+                redis_url=settings.REDIS_URL,
+                context_window=settings.CONTEXT_WINDOW,
+                emotion_classifier=emotion_classifier
+            )
+        if llm_service is None:
+            llm_service = LLMService(
+                model_name=settings.OLLAMA_MODEL,
+                host=settings.OLLAMA_HOST
+            )
+    return emotion_classifier, context_manager, llm_service
 
 
 def get_services():
-    """Lazy initialization of services."""
+    """Return initialized services. Falls back to init if not preloaded yet."""
     global emotion_classifier, context_manager, llm_service
     
-    if emotion_classifier is None:
-        emotion_classifier = EmotionClassifier()
-    if context_manager is None:
-        context_manager = ContextManager(
-            redis_url=settings.REDIS_URL,
-            context_window=settings.CONTEXT_WINDOW,
-            emotion_classifier=emotion_classifier
-        )
-    if llm_service is None:
-        llm_service = LLMService(
-            model_name=settings.OLLAMA_MODEL,
-            host=settings.OLLAMA_HOST
-        )
+    if emotion_classifier is None or context_manager is None or llm_service is None:
+        return preload_services()
     
     return emotion_classifier, context_manager, llm_service
 
@@ -63,15 +73,23 @@ async def get_db():
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """Check if all services are running."""
-    import ollama
+    
+    # Check LLM provider
+    llm_provider = getattr(settings, "LLM_PROVIDER", "ollama").lower()
     
     ollama_status = "disconnected"
-    try:
-        client = ollama.Client(host=settings.OLLAMA_HOST)
-        client.list()
-        ollama_status = "connected"
-    except Exception:
-        pass
+    if llm_provider == "ollama":
+        try:
+            import ollama
+            client = ollama.Client(host=settings.OLLAMA_HOST)
+            client.list()
+            ollama_status = "connected"
+        except Exception:
+            pass
+    elif llm_provider == "groq":
+        # Groq is a cloud API — if key is set, consider it connected
+        groq_key = getattr(settings, "GROQ_API_KEY", "")
+        ollama_status = "connected" if groq_key else "disconnected"
     
     redis_status = "disconnected"
     try:
@@ -84,11 +102,12 @@ async def health_check():
         redis_status = "using_fallback"
     
     status = "healthy" if ollama_status == "connected" else "degraded"
+    model_name = getattr(settings, "GROQ_MODEL", settings.OLLAMA_MODEL) if llm_provider == "groq" else settings.OLLAMA_MODEL
     
     return HealthResponse(
         status=status,
         ollama=ollama_status,
-        model=settings.OLLAMA_MODEL,
+        model=model_name,
         redis=redis_status
     )
 

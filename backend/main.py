@@ -1,13 +1,14 @@
 """
 Solace Backend - FastAPI Application
-A compassionate mental health companion powered by local AI.
+A compassionate mental health companion powered by AI.
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import threading
 
-from api.routes import router
+from api.routes import router, preload_services
 from api.auth import router as auth_router
 from api.admin import router as admin_router
 from core.user import init_db
@@ -21,12 +22,21 @@ async def lifespan(app: FastAPI):
     await init_db()
     print("✅ Database initialized")
     
+    # Pre-load AI services in background thread so server starts accepting requests immediately
+    def _preload():
+        print("🔄 Pre-loading AI services in background...")
+        preload_services()
+        print("✅ All AI services ready!")
+    
+    thread = threading.Thread(target=_preload, daemon=True)
+    thread.start()
+    
+    provider = settings.LLM_PROVIDER.upper()
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║                       🧠 Solace Backend                        ║
+║                    Solace Backend v2.1                       ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Model: {settings.OLLAMA_MODEL:<52} ║
-║  Ollama: {settings.OLLAMA_HOST:<51} ║
+║  Provider: {provider:<49} ║
 ║  Redis: {settings.REDIS_URL:<52} ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
@@ -36,8 +46,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Solace",
-    description="A compassionate mental health companion powered by local AI",
-    version="2.0.0",
+    description="A compassionate mental health companion powered by AI",
+    version="2.1.0",
     lifespan=lifespan
 )
 
@@ -61,7 +71,7 @@ def root():
     """Root endpoint - API info."""
     return {
         "name": "Solace",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "status": "running",
         "docs": "/docs"
     }
