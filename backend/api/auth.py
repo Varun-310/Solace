@@ -40,7 +40,6 @@ class UserResponse(BaseModel):
     theme: str
     chat_mode: str
     notifications_enabled: bool
-    encryption_salt: str
     created_at: datetime
 
 

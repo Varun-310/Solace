@@ -3,7 +3,7 @@ API Request/Response Schemas
 Pydantic models for type validation.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -12,7 +12,7 @@ from datetime import datetime
 
 class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
-    message: str
+    message: str = Field(..., max_length=2000)
     session_id: Optional[str] = None
     mode: Optional[str] = "guide"
 
@@ -58,7 +58,7 @@ class HistoryResponse(BaseModel):
 class HealthResponse(BaseModel):
     """Response for health check."""
     status: str
-    ollama: str
+    llm: str
     model: str
     redis: str
 
@@ -86,6 +86,13 @@ class EncryptedHistoryResponse(BaseModel):
     """Response for encrypted message history."""
     messages: List[EncryptedMessageResponse]
     message_count: int
+
+
+class SaveMessagePairRequest(BaseModel):
+    """Request to save a user+AI message pair (JSON body, not URL params)."""
+    user_msg: str
+    ai_msg: str
+    session_id: str
 
 
 # ============ Password Reset Schemas ============

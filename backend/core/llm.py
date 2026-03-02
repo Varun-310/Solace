@@ -1,10 +1,10 @@
 """
-LLM Service
-Supports Groq (cloud, fast) and Ollama (local, slower) providers.
-Falls back to Ollama if Groq rate limits are hit.
+LLM Service — Groq Cloud
+Fast cloud inference via the Groq API.
+Uses AsyncGroq for non-blocking async calls.
 """
 
-import ollama
+from groq import AsyncGroq
 from typing import Dict, List
 from config import settings
 from utils.prompts import (
@@ -18,73 +18,30 @@ from utils.prompts import (
 
 class LLMService:
     """
-    Multi-provider LLM service.
+    Groq-powered LLM service with automatic fallback model.
     
-    Providers:
-    - groq: Fast cloud inference (Groq API)
-    - ollama: Local inference (slower, fully private)
-    
-    Automatically falls back to Ollama if Groq rate limits are hit.
+    Uses AsyncGroq for proper async I/O — never blocks the event loop.
+    Falls back to a secondary model if the primary hits rate limits.
     """
 
-    def __init__(self, model_name: str = "gemma3:4b", host: str = "http://localhost:11434"):
-        self.model_name = model_name
-        self.host = host
-        self.provider = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+    def __init__(self):
         self.groq_client = None
-        self.ollama_client = None
-        
-        if self.provider == "groq":
-            self._init_groq()
-        else:
-            self._init_ollama()
+        self.model = settings.GROQ_MODEL
+        self.fallback_model = settings.GROQ_FALLBACK_MODEL
+        self._init_groq()
     
     def _init_groq(self):
-        """Initialize Groq cloud client."""
-        api_key = getattr(settings, "GROQ_API_KEY", "")
+        """Initialize Groq async client."""
+        api_key = settings.GROQ_API_KEY
         if not api_key:
-            print("⚠️  GROQ_API_KEY not set, falling back to Ollama")
-            self.provider = "ollama"
-            self._init_ollama()
+            print("⚠️  GROQ_API_KEY not set — LLM will not work!")
             return
         
         try:
-            from groq import Groq
-            self.groq_client = Groq(api_key=api_key)
-            self.groq_model = getattr(settings, "GROQ_MODEL", "llama-3.1-8b-instant")
-            self.groq_fallback_model = getattr(settings, "GROQ_FALLBACK_MODEL", "gemma2-9b-it")
-            print(f"✅ Groq cloud LLM ready: {self.groq_model}")
+            self.groq_client = AsyncGroq(api_key=api_key)
+            print(f"✅ Groq LLM ready: {self.model} (fallback: {self.fallback_model})")
         except Exception as e:
-            print(f"⚠️  Groq init failed: {e}, falling back to Ollama")
-            self.provider = "ollama"
-            self._init_ollama()
-    
-    def _init_ollama(self):
-        """Initialize Ollama local client."""
-        self.ollama_client = ollama.Client(host=self.host)
-        print(f"🔄 Connecting to Ollama at {self.host}...")
-        try:
-            models_response = self.ollama_client.list()
-            if isinstance(models_response, dict):
-                models_list = models_response.get("models", [])
-            else:
-                models_list = list(models_response) if models_response else []
-            
-            available = []
-            for m in models_list:
-                if isinstance(m, dict):
-                    available.append(m.get("name", m.get("model", str(m))))
-                else:
-                    available.append(str(m))
-            
-            if any(self.model_name in m for m in available):
-                print(f"✅ Ollama LLM ready: {self.model_name}")
-            else:
-                print(f"⚠️  {self.model_name} not found. Available: {available}")
-                print(f"   Run: ollama pull {self.model_name}")
-        except Exception as e:
-            print(f"⚠️  Could not connect to Ollama: {e}")
-            print("   Make sure Ollama is running: ollama serve")
+            print(f"⚠️  Groq init failed: {e}")
     
     async def generate_response(
         self,
@@ -93,11 +50,14 @@ class LLMService:
         emotional_summary: str,
         mode: str = "guide"
     ) -> str:
-        """Generate an empathetic response. Uses Groq with Ollama fallback."""
+        """Generate an empathetic response via Groq."""
         
         # Check for crisis keywords
         if any(kw in user_message.lower() for kw in CRISIS_KEYWORDS):
             return CRISIS_RESPONSE
+        
+        if not self.groq_client:
+            return "I'm having trouble connecting right now. Please try again in a moment."
         
         # Build system prompt
         history = self._format_history(context["messages"])
@@ -114,16 +74,14 @@ CONVERSATION SO FAR:
 ---
 RESPOND NOW: Validate briefly, then ENCOURAGE and UPLIFT them. Help them feel stronger and more hopeful. Don't just ask questions - offer support.""".strip()
         
-        if self.provider == "groq":
-            return await self._generate_groq(system_prompt, user_message)
-        else:
-            return await self._generate_ollama(system_prompt, user_message)
+        # Try primary model, then fallback
+        return await self._generate(system_prompt, user_message)
     
-    async def _generate_groq(self, system_prompt: str, user_message: str) -> str:
-        """Generate via Groq cloud API with rate-limit fallback to Ollama."""
+    async def _generate(self, system_prompt: str, user_message: str) -> str:
+        """Generate via Groq with automatic fallback model on rate limit."""
         try:
-            response = self.groq_client.chat.completions.create(
-                model=self.groq_model,
+            response = await self.groq_client.chat.completions.create(
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
@@ -137,12 +95,12 @@ RESPOND NOW: Validate briefly, then ENCOURAGE and UPLIFT them. Help them feel st
         except Exception as e:
             error_str = str(e).lower()
             
-            # Rate limit or quota exceeded — try fallback model
+            # Rate limit — try fallback model
             if "rate_limit" in error_str or "429" in error_str or "quota" in error_str:
-                print(f"⚠️  Groq rate limit on {self.groq_model}, trying fallback model...")
+                print(f"⚠️  Groq rate limit on {self.model}, trying {self.fallback_model}...")
                 try:
-                    response = self.groq_client.chat.completions.create(
-                        model=self.groq_fallback_model,
+                    response = await self.groq_client.chat.completions.create(
+                        model=self.fallback_model,
                         messages=[
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_message}
@@ -153,37 +111,8 @@ RESPOND NOW: Validate briefly, then ENCOURAGE and UPLIFT them. Help them feel st
                     )
                     return response.choices[0].message.content
                 except Exception as fallback_err:
-                    print(f"⚠️  Groq fallback also failed: {fallback_err}")
+                    print(f"⚠️  Fallback model also failed: {fallback_err}")
             
-            # All Groq attempts failed — fall back to Ollama
-            print(f"⚠️  Groq failed: {e}, falling back to Ollama")
-            if not self.ollama_client:
-                self._init_ollama()
-            return await self._generate_ollama(system_prompt, user_message)
-    
-    async def _generate_ollama(self, system_prompt: str, user_message: str) -> str:
-        """Generate via local Ollama."""
-        try:
-            if not self.ollama_client:
-                self.ollama_client = ollama.Client(host=self.host)
-            
-            response = self.ollama_client.chat(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ],
-                options={
-                    "temperature": 0.85,
-                    "top_p": 0.92,
-                    "num_predict": 300,
-                    "repeat_penalty": 1.15,
-                    "top_k": 50,
-                }
-            )
-            return response["message"]["content"]
-            
-        except Exception as e:
             print(f"LLM Error: {e}")
             return "I'm having a moment - could you say that again?"
     

@@ -158,15 +158,43 @@ class ContextManager:
         raw_messages = await storage.lrange(key, 0, -1)
         messages = [json.loads(m) for m in raw_messages]
         
-        # Get emotion history
+        # Get stored emotion history (already classified, no re-inference needed)
         emotion_key = f"session:{session_id}:emotions"
         raw_emotions = await storage.lrange(emotion_key, 0, -1)
         emotion_history = [json.loads(e) for e in raw_emotions]
         
-        # Analyze overall emotional state
-        user_messages = [m["content"] for m in messages if m["role"] == "user"]
-        if user_messages and self.emotion_classifier:
-            overall = self.emotion_classifier.analyze_conversation(user_messages)
+        # Build overall state from stored history (fast, no ML inference)
+        if emotion_history:
+            # Use stored emotions to determine dominant emotion
+            emotion_scores = {}
+            n = len(emotion_history)
+            for i, e in enumerate(emotion_history):
+                weight = 2 ** (i / max(n, 1))
+                emotion_scores[e["emotion"]] = emotion_scores.get(e["emotion"], 0) + weight
+            
+            sorted_emotions = sorted(emotion_scores.items(), key=lambda x: x[1], reverse=True)
+            dominant = sorted_emotions[0][0] if sorted_emotions else "neutral"
+            
+            # Trajectory from stored groups
+            groups = [e["group"] for e in emotion_history]
+            mid = len(groups) // 2
+            if mid > 0:
+                early_neg = groups[:mid].count("negative")
+                recent_neg = groups[mid:].count("negative")
+                if recent_neg < early_neg:
+                    trajectory = "improving - user seems to be feeling better"
+                elif recent_neg > early_neg:
+                    trajectory = "declining - user may need extra support"
+                else:
+                    trajectory = "stable emotional state"
+            else:
+                trajectory = "early in conversation"
+            
+            overall = {
+                "dominant_emotion": dominant,
+                "emotion_group": self._get_emotion_group(dominant),
+                "trajectory": trajectory
+            }
         else:
             overall = {
                 "dominant_emotion": "neutral",
@@ -180,6 +208,12 @@ class ContextManager:
             "emotional_state": overall,
             "message_count": len(messages)
         }
+    
+    def _get_emotion_group(self, emotion: str) -> str:
+        """Get the emotion group for a given emotion label."""
+        if self.emotion_classifier:
+            return self.emotion_classifier._get_group(emotion)
+        return "neutral"
     
     async def get_emotional_summary(self, session_id: str) -> str:
         """

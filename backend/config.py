@@ -13,12 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Solace"
     DEBUG: bool = False
     
-    # Ollama - Local LLM
-    OLLAMA_HOST: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "gemma3:4b"
-    
-    # LLM Provider (ollama or groq)
-    LLM_PROVIDER: str = "ollama"
+    # Groq Cloud LLM
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.1-8b-instant"
     GROQ_FALLBACK_MODEL: str = "gemma2-9b-it"
@@ -27,8 +22,14 @@ class Settings(BaseSettings):
     CONTEXT_WINDOW: int = 6
     MAX_RESPONSE_TOKENS: int = 250
     
-    # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./empathy.db"
+    # Database (Supabase PostgreSQL)
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "password"
+    DB_NAME: str = "postgres"
+    
+    # Redis (optional session cache)
     REDIS_URL: str = "redis://localhost:6379"
     
     # Encryption

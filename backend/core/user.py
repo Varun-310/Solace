@@ -7,8 +7,8 @@ from sqlalchemy import Column, String, DateTime, Boolean, Text, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+import bcrypt
 from datetime import datetime
-import hashlib
 import secrets
 import os
 
@@ -37,13 +37,20 @@ class User(Base):
     last_login = Column(DateTime, nullable=True)
     
     def verify_password(self, password: str) -> bool:
-        """Verify password against stored hash."""
-        return self.password_hash == self._hash_password(password)
+        """Verify password against stored bcrypt hash."""
+        return bcrypt.checkpw(
+            password[:72].encode("utf-8"),
+            self.password_hash.encode("utf-8")
+        )
     
     @staticmethod
     def _hash_password(password: str) -> str:
-        """Hash password with SHA-256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password with bcrypt (slow, salted, secure)."""
+        hashed = bcrypt.hashpw(
+            password[:72].encode("utf-8"),
+            bcrypt.gensalt(rounds=12)
+        )
+        return hashed.decode("utf-8")
     
     @classmethod
     def create(cls, username: str, email: str, password: str, display_name: str = None):
@@ -114,9 +121,34 @@ class PasswordReset(Base):
         return not self.used and datetime.utcnow() < self.expires_at
 
 
-# Database setup
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./empathy.db")
-engine = create_async_engine(DATABASE_URL, echo=False)
+# Database setup — Supabase PostgreSQL via asyncpg
+# Uses pydantic settings which auto-loads from .env
+from config import settings
+from sqlalchemy import URL
+
+_db_url = URL.create(
+    drivername="postgresql+asyncpg",
+    username=settings.DB_USER,
+    password=settings.DB_PASSWORD,
+    host=settings.DB_HOST,
+    port=settings.DB_PORT,
+    database=settings.DB_NAME,
+)
+
+engine = create_async_engine(
+    _db_url,
+    echo=False,
+    pool_size=5,
+    max_overflow=10,
+    pool_pre_ping=True,
+    connect_args={
+        "ssl": "require",
+        "prepared_statement_cache_size": 0,
+        "server_settings": {
+            "options": f"-c search_path=public",
+        },
+    },
+)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 

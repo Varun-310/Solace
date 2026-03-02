@@ -11,6 +11,15 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 ENCRYPTION_SECRET = os.getenv("ENCRYPTION_SECRET", "change-this-to-a-secure-random-string")
 
+# Fail-fast if encryption secret is the insecure default
+if ENCRYPTION_SECRET == "change-this-to-a-secure-random-string":
+    import warnings
+    warnings.warn(
+        "⚠️  ENCRYPTION_SECRET is still the default value! "
+        "Set a real 32+ character random string in .env before deploying to production.",
+        stacklevel=2,
+    )
+
 
 def _derive_key(user_salt: str) -> bytes:
     """Derive a 256-bit AES key from master secret + user salt."""

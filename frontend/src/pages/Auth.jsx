@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 const AuthPage = () => {
     const { login, register, googleLogin, error, clearError } = useAuth();

@@ -6,7 +6,7 @@
 
 import { authAPI } from './auth';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 /**
  * Chat API endpoints
@@ -72,17 +72,23 @@ export const chatAPI = {
 
   /**
    * Save an encrypted message pair (server-side encryption).
+   * Fixed: sends data in POST body instead of URL params.
    */
   async saveMessagePair(sessionId, userMsg, aiMsg) {
     if (!authAPI.isAuthenticated()) return; // Only for logged-in users
 
-    const response = await fetch(
-      `${API_BASE}/chat/save-pair?user_msg=${encodeURIComponent(userMsg)}&ai_msg=${encodeURIComponent(aiMsg)}&session_id=${sessionId}`,
-      {
-        method: 'POST',
-        headers: authAPI.getAuthHeaders()
-      }
-    );
+    const response = await fetch(`${API_BASE}/chat/save-pair`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authAPI.getAuthHeaders()
+      },
+      body: JSON.stringify({
+        user_msg: userMsg,
+        ai_msg: aiMsg,
+        session_id: sessionId
+      })
+    });
     return response.json();
   },
 

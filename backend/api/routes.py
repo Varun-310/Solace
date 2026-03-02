@@ -12,13 +12,14 @@ from .schemas import (
     SessionResponse, SessionClearResponse,
     HistoryResponse, MessageHistory,
     HealthResponse,
-    SaveEncryptedMessageRequest, EncryptedMessageResponse, EncryptedHistoryResponse
+    SaveEncryptedMessageRequest, EncryptedMessageResponse, EncryptedHistoryResponse,
+    SaveMessagePairRequest
 )
 from config import settings
 from core.emotion import EmotionClassifier
 from core.context import ContextManager
 from core.llm import LLMService
-from core.user import User, ChatMessage, AsyncSessionLocal
+from core.user import User, ChatMessage, AsyncSessionLocal, get_db as _get_db
 from utils.encryption import encrypt_message, decrypt_message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,10 +47,7 @@ def preload_services():
                 emotion_classifier=emotion_classifier
             )
         if llm_service is None:
-            llm_service = LLMService(
-                model_name=settings.OLLAMA_MODEL,
-                host=settings.OLLAMA_HOST
-            )
+            llm_service = LLMService()
     return emotion_classifier, context_manager, llm_service
 
 
@@ -64,7 +62,7 @@ def get_services():
 
 
 async def get_db():
-    async with AsyncSessionLocal() as session:
+    async for session in _get_db():
         yield session
 
 
@@ -74,23 +72,10 @@ async def get_db():
 async def health_check():
     """Check if all services are running."""
     
-    # Check LLM provider
-    llm_provider = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+    # Check Groq LLM
+    llm_status = "connected" if settings.GROQ_API_KEY else "disconnected"
     
-    ollama_status = "disconnected"
-    if llm_provider == "ollama":
-        try:
-            import ollama
-            client = ollama.Client(host=settings.OLLAMA_HOST)
-            client.list()
-            ollama_status = "connected"
-        except Exception:
-            pass
-    elif llm_provider == "groq":
-        # Groq is a cloud API — if key is set, consider it connected
-        groq_key = getattr(settings, "GROQ_API_KEY", "")
-        ollama_status = "connected" if groq_key else "disconnected"
-    
+    # Check Redis
     redis_status = "disconnected"
     try:
         import redis.asyncio as redis_client
@@ -101,13 +86,12 @@ async def health_check():
     except Exception:
         redis_status = "using_fallback"
     
-    status = "healthy" if ollama_status == "connected" else "degraded"
-    model_name = getattr(settings, "GROQ_MODEL", settings.OLLAMA_MODEL) if llm_provider == "groq" else settings.OLLAMA_MODEL
+    status = "healthy" if llm_status == "connected" else "degraded"
     
     return HealthResponse(
         status=status,
-        ollama=ollama_status,
-        model=model_name,
+        llm=llm_status,
+        model=settings.GROQ_MODEL,
         redis=redis_status
     )
 
@@ -231,9 +215,7 @@ async def save_encrypted_message(
 
 @router.post("/chat/save-pair")
 async def save_message_pair(
-    user_msg: str,
-    ai_msg: str,
-    session_id: str,
+    request: SaveMessagePairRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -242,22 +224,22 @@ async def save_message_pair(
         raise HTTPException(status_code=401, detail="Authentication required")
     
     # Encrypt user message
-    user_enc = encrypt_message(user_msg, user.encryption_salt)
+    user_enc = encrypt_message(request.user_msg, user.encryption_salt)
     user_record = ChatMessage(
         id=str(uuid.uuid4()),
         user_id=user.id,
-        session_id=session_id,
+        session_id=request.session_id,
         encrypted_content=user_enc["ciphertext"],
         iv=user_enc["iv"],
         role="user"
     )
     
     # Encrypt AI message
-    ai_enc = encrypt_message(ai_msg, user.encryption_salt)
+    ai_enc = encrypt_message(request.ai_msg, user.encryption_salt)
     ai_record = ChatMessage(
         id=str(uuid.uuid4()),
         user_id=user.id,
-        session_id=session_id,
+        session_id=request.session_id,
         encrypted_content=ai_enc["ciphertext"],
         iv=ai_enc["iv"],
         role="assistant"

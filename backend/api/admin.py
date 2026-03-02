@@ -8,7 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
-from core.user import User, UserSession, ChatMessage, PasswordReset, AsyncSessionLocal
+from core.user import User, UserSession, ChatMessage, PasswordReset, AsyncSessionLocal, get_db as _get_db
 from .auth import get_current_user
 
 router = APIRouter(prefix="/s0l-ctrl", tags=["Admin"])
@@ -17,7 +17,7 @@ ADMIN_EMAIL = "itsvarun310@gmail.com"
 
 
 async def get_db():
-    async with AsyncSessionLocal() as session:
+    async for session in _get_db():
         yield session
 
 

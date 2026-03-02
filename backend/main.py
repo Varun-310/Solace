@@ -3,6 +3,11 @@ Solace Backend - FastAPI Application
 A compassionate mental health companion powered by AI.
 """
 
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"          # Suppress TF warnings
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"         # Suppress oneDNN messages
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"     # Only show errors from transformers
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -20,7 +25,7 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     # Initialize database
     await init_db()
-    print("✅ Database initialized")
+    print("✅ Database initialized (Supabase PostgreSQL)")
     
     # Pre-load AI services in background thread so server starts accepting requests immediately
     def _preload():
@@ -31,13 +36,12 @@ async def lifespan(app: FastAPI):
     thread = threading.Thread(target=_preload, daemon=True)
     thread.start()
     
-    provider = settings.LLM_PROVIDER.upper()
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║                    Solace Backend v2.1                       ║
+║                    Solace Backend v2.2                       ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Provider: {provider:<49} ║
-║  Redis: {settings.REDIS_URL:<52} ║
+║  LLM: Groq ({settings.GROQ_MODEL:<44}) ║
+║  Database: Supabase PostgreSQL                               ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
     yield
@@ -47,14 +51,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Solace",
     description="A compassionate mental health companion powered by AI",
-    version="2.1.0",
+    version="2.2.0",
     lifespan=lifespan
 )
 
 # CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",    # Vite dev server
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,7 +80,7 @@ def root():
     """Root endpoint - API info."""
     return {
         "name": "Solace",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "status": "running",
         "docs": "/docs"
     }

@@ -12,6 +12,7 @@ import { useSettings } from "../hooks/useSettings";
 import TypingIndicator from "./TypingIndicator";
 import Message from "./Message";
 import BottomSheet from "./BottomSheet";
+import DesktopMenu from "./DesktopMenu";
 
 const ChatBot = () => {
   const {
@@ -57,8 +58,18 @@ const ChatBot = () => {
 
   return (
     <div className="app-shell" style={{ background: 'var(--color-bg)' }}>
-      {/* Bottom Sheet Navigation */}
-      <BottomSheet
+      {/* Bottom Sheet Navigation (Mobile) */}
+      <div className="md:hidden">
+        <BottomSheet
+          isOpen={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          onNewChat={startNewSession}
+          onClearHistory={clearHistory}
+        />
+      </div>
+
+      {/* Floating Desktop Menu (Desktop) */}
+      <DesktopMenu
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onNewChat={startNewSession}
