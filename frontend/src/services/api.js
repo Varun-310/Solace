@@ -26,8 +26,17 @@ export const chatAPI = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || 'Failed to send message');
+      const errorData = await response.json().catch(() => ({}));
+
+      // Structured error for token exhaustion (429)
+      if (response.status === 429 && errorData.detail?.error_type) {
+        const err = new Error(errorData.detail.message || 'Rate limited');
+        err.status = 429;
+        err.detail = errorData.detail;
+        throw err;
+      }
+
+      throw new Error(errorData.detail || 'Failed to send message');
     }
 
     return response.json();
@@ -107,6 +116,28 @@ export const chatAPI = {
    */
   async healthCheck() {
     const response = await fetch(`${API_BASE}/health`);
+    return response.json();
+  },
+
+  /**
+   * List conversation sessions for the authenticated user.
+   */
+  async getSessions() {
+    const response = await fetch(`${API_BASE}/chat/sessions`, {
+      headers: authAPI.getAuthHeaders()
+    });
+    if (!response.ok) return { sessions: [] };
+    return response.json();
+  },
+
+  /**
+   * Load decrypted messages for a specific session.
+   */
+  async loadSessionMessages(sessionId) {
+    const response = await fetch(`${API_BASE}/chat/session/${sessionId}/messages`, {
+      headers: authAPI.getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to load session');
     return response.json();
   },
 };

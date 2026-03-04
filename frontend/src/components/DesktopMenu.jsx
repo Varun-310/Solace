@@ -3,13 +3,13 @@
  * Floating glassmorphic dock menu for desktop screens.
  */
 
-import { X, Plus, Settings, Info, LogOut, User, Shield, Trash2, Heart } from "lucide-react";
+import { X, Plus, Settings, Info, LogOut, User, Shield, Trash2, Heart, MessageCircle, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const ADMIN_EMAIL = "itsvarun310@gmail.com";
 
-const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
+const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations = [], onLoadConversation }) => {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -24,6 +24,17 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
     const handleNav = (path) => {
         onClose();
         navigate(path);
+    };
+
+    const formatTimeAgo = (dateStr) => {
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        const days = Math.floor(hrs / 24);
+        return `${days}d ago`;
     };
 
     return (
@@ -41,6 +52,7 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                     top: '70px',
                     right: '24px',
                     width: '320px',
+                    maxHeight: 'calc(100vh - 100px)',
                     borderRadius: '24px',
                     background: 'rgba(255, 255, 255, 0.95)',
                     backdropFilter: 'blur(28px) saturate(1.6)',
@@ -48,7 +60,8 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
                     border: '1px solid var(--color-border)',
                     transformOrigin: 'top right',
-                    animation: 'slideUp 0.2s ease-out forwards'
+                    animation: 'slideUp 0.2s ease-out forwards',
+                    overflowY: 'auto',
                 }}
             >
                 <div className="p-5">
@@ -100,6 +113,55 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                             <MenuItem icon={Shield} label="Admin Dashboard" onClick={() => handleNav('/s0lace-ctrl')} />
                         )}
                     </div>
+
+                    {/* Past Conversations — Empathetic Design */}
+                    {isAuthenticated && conversations.length > 0 && (
+                        <div className="mb-4 pt-3 border-t" style={{ borderColor: 'var(--color-border-light)' }}>
+                            <div className="flex items-center gap-2 px-1 mb-3">
+                                <Heart className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)', opacity: 0.6 }} />
+                                <p className="text-[11px] font-semibold uppercase tracking-wider"
+                                    style={{ color: 'var(--color-text-muted)' }}>
+                                    Your Journey
+                                </p>
+                            </div>
+                            <div className="space-y-1.5">
+                                {conversations.slice(0, 5).map((conv) => (
+                                    <button
+                                        key={conv.session_id}
+                                        onClick={() => { onLoadConversation?.(conv.session_id); onClose(); }}
+                                        className="w-full text-left p-3 rounded-xl transition-all duration-200 group"
+                                        style={{ background: 'transparent' }}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(58, 125, 92, 0.05) 0%, rgba(200, 149, 108, 0.03) 100%)';
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.background = 'transparent';
+                                        }}
+                                    >
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                                                style={{ background: 'var(--color-primary)', opacity: 0.5 }} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm truncate font-medium"
+                                                    style={{ color: 'var(--color-text-secondary)' }}>
+                                                    {conv.preview}
+                                                </p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <Clock className="w-3 h-3" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }} />
+                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                                        {formatTimeAgo(conv.last_active)}
+                                                    </span>
+                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
+                                                        · {conv.message_count} messages
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Danger Zone */}
                     <div className="pt-3 space-y-1 border-t" style={{ borderColor: 'var(--color-border-light)' }}>

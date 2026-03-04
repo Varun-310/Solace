@@ -1,26 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Background -->
-  <rect width="100" height="100" rx="20" fill="#3A7D5C" />
-  
-  <!-- Subtle gradient glow -->
-  <circle cx="50" cy="50" r="40" fill="url(#glow)" opacity="0.6" />
-  
-  <!-- The 'S' for Solace -->
-  <path d="M 65 35 C 55 25, 35 25, 35 40 C 35 55, 65 50, 65 65 C 65 80, 45 80, 35 70" 
-        fill="none" 
-        stroke="#FFFFFF" 
-        stroke-width="8" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" />
-  
-  <!-- Leaf Sparkle -->
-  <path d="M 70 20 Q 80 20 80 30 Q 80 20 90 20 Q 80 20 80 10 Q 80 20 70 20 Z" 
-        fill="#E9EDC9" />
-
   <defs>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.5" />
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3A7D5C"/>
+      <stop offset="100%" stop-color="#2B5E44"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="40%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="heart" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E9EDC9"/>
+    </linearGradient>
   </defs>
+
+  <!-- Rounded background -->
+  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+  
+  <!-- Subtle inner glow -->
+  <circle cx="50" cy="44" r="36" fill="url(#glow)"/>
+
+  <!-- Cupped hands (simplified, gentle curves) -->
+  <path d="M 22 58 Q 22 72, 38 76 Q 50 78, 50 78 Q 50 78, 62 76 Q 78 72, 78 58 Q 78 52, 72 48 Q 66 52, 60 54 Q 54 56, 50 56 Q 46 56, 40 54 Q 34 52, 28 48 Q 22 52, 22 58 Z"
+        fill="#FFFFFF" fill-opacity="0.18"/>
+
+  <!-- Heart -->
+  <path d="M 50 68 
+           C 50 68, 28 52, 28 40 
+           C 28 32, 34 26, 40 26 
+           C 44 26, 48 29, 50 33 
+           C 52 29, 56 26, 60 26 
+           C 66 26, 72 32, 72 40 
+           C 72 52, 50 68, 50 68 Z"
+        fill="url(#heart)" fill-opacity="0.95"/>
+
+  <!-- Tiny sparkle -->
+  <circle cx="72" cy="22" r="2.5" fill="#E9EDC9" fill-opacity="0.7"/>
+  <circle cx="78" cy="28" r="1.5" fill="#E9EDC9" fill-opacity="0.5"/>
 </svg>

@@ -16,6 +16,11 @@ from utils.prompts import (
 )
 
 
+class TokenExhaustedException(Exception):
+    """Raised when both primary and fallback LLM models hit rate limits."""
+    pass
+
+
 class LLMService:
     """
     Groq-powered LLM service with automatic fallback model.
@@ -111,7 +116,14 @@ RESPOND NOW: Validate briefly, then ENCOURAGE and UPLIFT them. Help them feel st
                     )
                     return response.choices[0].message.content
                 except Exception as fallback_err:
+                    fallback_str = str(fallback_err).lower()
                     print(f"⚠️  Fallback model also failed: {fallback_err}")
+                    
+                    # Both models exhausted → raise structured exception
+                    if "rate_limit" in fallback_str or "429" in fallback_str or "quota" in fallback_str:
+                        raise TokenExhaustedException(
+                            "Free-tier API tokens are temporarily exhausted. Please try again shortly."
+                        )
             
             print(f"LLM Error: {e}")
             return "I'm having a moment - could you say that again?"

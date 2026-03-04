@@ -13,15 +13,16 @@ from .schemas import (
     HistoryResponse, MessageHistory,
     HealthResponse,
     SaveEncryptedMessageRequest, EncryptedMessageResponse, EncryptedHistoryResponse,
-    SaveMessagePairRequest
+    SaveMessagePairRequest,
+    SessionListItem, SessionListResponse
 )
 from config import settings
 from core.emotion import EmotionClassifier
 from core.context import ContextManager
-from core.llm import LLMService
+from core.llm import LLMService, TokenExhaustedException
 from core.user import User, ChatMessage, AsyncSessionLocal, get_db as _get_db
 from utils.encryption import encrypt_message, decrypt_message
-from sqlalchemy import select
+from sqlalchemy import select, func, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 from .auth import get_current_user
 
@@ -134,6 +135,20 @@ async def chat(request: ChatRequest):
         return ChatResponse(
             response=response_text,
             session_id=session_id
+        )
+    
+    except TokenExhaustedException:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error_type": "token_exhausted",
+                "message": (
+                    "I'm so sorry — our free-tier AI tokens have been used up for now. "
+                    "Solace is a student project built with love, and we rely on free resources to keep running. "
+                    "Please come back in about 1-2 minutes and I'll be here waiting for you. 💚"
+                ),
+                "retry_after_seconds": 90
+            }
         )
         
     except Exception as e:
@@ -283,3 +298,97 @@ async def get_encrypted_history(
         messages=response_messages,
         message_count=len(response_messages)
     )
+
+
+# ============ Conversation History (Logged-in Users) ============
+
+@router.get("/chat/sessions", response_model=SessionListResponse)
+async def list_user_sessions(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all conversation sessions for the authenticated user."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Get distinct sessions with aggregate info
+    result = await db.execute(
+        select(
+            ChatMessage.session_id,
+            func.min(ChatMessage.created_at).label("first_msg"),
+            func.max(ChatMessage.created_at).label("last_msg"),
+            func.count(ChatMessage.id).label("msg_count"),
+        )
+        .where(ChatMessage.user_id == user.id)
+        .group_by(ChatMessage.session_id)
+        .order_by(func.max(ChatMessage.created_at).desc())
+        .limit(20)
+    )
+    rows = result.all()
+    
+    sessions = []
+    for row in rows:
+        # Fetch first user message as preview
+        first_msg_result = await db.execute(
+            select(ChatMessage)
+            .where(
+                ChatMessage.user_id == user.id,
+                ChatMessage.session_id == row.session_id,
+                ChatMessage.role == "user"
+            )
+            .order_by(ChatMessage.created_at.asc())
+            .limit(1)
+        )
+        first_msg = first_msg_result.scalar_one_or_none()
+        
+        preview = "New conversation"
+        if first_msg:
+            try:
+                decrypted = decrypt_message(
+                    first_msg.encrypted_content, first_msg.iv, user.encryption_salt
+                )
+                preview = decrypted[:80] + ("..." if len(decrypted) > 80 else "")
+            except Exception:
+                preview = "Encrypted conversation"
+        
+        sessions.append(SessionListItem(
+            session_id=row.session_id,
+            preview=preview,
+            last_active=row.last_msg,
+            message_count=row.msg_count
+        ))
+    
+    return SessionListResponse(sessions=sessions)
+
+
+@router.get("/chat/session/{session_id}/messages")
+async def load_session_messages(
+    session_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Load all messages for a specific session, decrypted for the authenticated user."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.user_id == user.id, ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at.asc())
+    )
+    messages = result.scalars().all()
+    
+    decrypted_messages = []
+    for msg in messages:
+        try:
+            content = decrypt_message(msg.encrypted_content, msg.iv, user.encryption_salt)
+        except Exception:
+            content = "[Message could not be decrypted]"
+        
+        decrypted_messages.append({
+            "role": msg.role,
+            "content": content,
+            "timestamp": msg.created_at.isoformat()
+        })
+    
+    return {"session_id": session_id, "messages": decrypted_messages}

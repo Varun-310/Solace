@@ -20,9 +20,13 @@ const ChatBot = () => {
     isTyping,
     isConnected,
     error,
+    tokenExhausted,
+    conversations,
     sendMessage,
     startNewSession,
-    clearHistory
+    clearHistory,
+    fetchConversations,
+    loadConversation
   } = useChat();
 
   const { user, isAuthenticated } = useAuth();
@@ -30,6 +34,7 @@ const ChatBot = () => {
 
   const [input, setInput] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -40,6 +45,32 @@ const ChatBot = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Fetch conversations when menu opens (for logged-in users)
+  useEffect(() => {
+    if (sheetOpen && isAuthenticated) {
+      fetchConversations();
+    }
+  }, [sheetOpen, isAuthenticated, fetchConversations]);
+
+  // Countdown timer for token exhaustion
+  useEffect(() => {
+    if (tokenExhausted) {
+      setCountdown(tokenExhausted.retryAfter);
+      const interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCountdown(0);
+    }
+  }, [tokenExhausted]);
 
   const handleSend = async (text = input) => {
     const content = typeof text === 'string' ? text : input;
@@ -65,6 +96,8 @@ const ChatBot = () => {
           onClose={() => setSheetOpen(false)}
           onNewChat={startNewSession}
           onClearHistory={clearHistory}
+          conversations={conversations}
+          onLoadConversation={loadConversation}
         />
       </div>
 
@@ -74,6 +107,8 @@ const ChatBot = () => {
         onClose={() => setSheetOpen(false)}
         onNewChat={startNewSession}
         onClearHistory={clearHistory}
+        conversations={conversations}
+        onLoadConversation={loadConversation}
       />
 
       {/* ── Header ── */}
@@ -158,6 +193,45 @@ const ChatBot = () => {
           style={{ background: 'var(--color-error-light)', color: 'var(--color-error)', borderBottom: '1px solid rgba(199, 80, 80, 0.1)' }}>
           <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
+        </div>
+      )}
+
+      {/* ── Token Exhaustion Banner ── */}
+      {tokenExhausted && (
+        <div className="px-4 sm:px-8 lg:px-16 xl:px-24 py-6 shrink-0 animate-fade-in"
+          style={{
+            background: 'linear-gradient(135deg, rgba(58, 125, 92, 0.08) 0%, rgba(200, 149, 108, 0.06) 50%, rgba(139, 126, 175, 0.05) 100%)',
+            borderBottom: '1px solid var(--color-border)',
+          }}>
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-[18px] mb-4 animate-breathe"
+              style={{
+                background: 'linear-gradient(135deg, rgba(58, 125, 92, 0.15) 0%, rgba(200, 149, 108, 0.1) 100%)',
+                boxShadow: '0 4px 20px rgba(58, 125, 92, 0.1)',
+              }}>
+              <Heart className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
+            </div>
+
+            <p className="text-sm leading-relaxed mb-3"
+              style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-body)' }}>
+              {tokenExhausted.message}
+            </p>
+
+            {countdown > 0 && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+                style={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                }}>
+                <div className="w-2 h-2 rounded-full animate-pulse"
+                  style={{ background: 'var(--color-primary)' }} />
+                <p className="text-xs font-medium"
+                  style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
+                  Ready again in ~{Math.ceil(countdown / 60)} min {countdown % 60}s
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

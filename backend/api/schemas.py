@@ -95,6 +95,21 @@ class SaveMessagePairRequest(BaseModel):
     session_id: str
 
 
+# ============ Session List Schemas ============
+
+class SessionListItem(BaseModel):
+    """A single session in the user's conversation list."""
+    session_id: str
+    preview: str        # First user message (truncated)
+    last_active: datetime
+    message_count: int
+
+
+class SessionListResponse(BaseModel):
+    """Response for listing user's conversation sessions."""
+    sessions: List[SessionListItem]
+
+
 # ============ Password Reset Schemas ============
 
 class ForgotPasswordRequest(BaseModel):

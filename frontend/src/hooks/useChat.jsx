@@ -1,6 +1,7 @@
 /**
  * Custom hook for managing chat state.
- * Handles messages, sessions, loading states, and encrypted persistence.
+ * Handles messages, sessions, loading states, encrypted persistence,
+ * graceful token-exhaustion handling, and conversation history.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -12,6 +13,8 @@ export const useChat = () => {
     const [sessionId, setSessionId] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState(null);
+    const [tokenExhausted, setTokenExhausted] = useState(null);
+    const [conversations, setConversations] = useState([]); // Past sessions list
     const initialized = useRef(false);
 
     const startNewSession = useCallback(async () => {
@@ -24,6 +27,37 @@ export const useChat = () => {
         } catch (err) {
             console.error('Failed to create session:', err);
             setError('Failed to create a new session');
+        }
+    }, []);
+
+    // Fetch conversation list for logged-in users
+    const fetchConversations = useCallback(async () => {
+        try {
+            const data = await chatAPI.getSessions();
+            setConversations(data.sessions || []);
+        } catch {
+            // Silently fail for non-authenticated users
+            setConversations([]);
+        }
+    }, []);
+
+    // Load a specific conversation
+    const loadConversation = useCallback(async (targetSessionId) => {
+        try {
+            setError(null);
+            const data = await chatAPI.loadSessionMessages(targetSessionId);
+            if (data.messages && data.messages.length > 0) {
+                setMessages(data.messages.map(m => ({
+                    role: m.role,
+                    content: m.content,
+                    timestamp: m.timestamp || new Date().toISOString()
+                })));
+                setSessionId(targetSessionId);
+                localStorage.setItem('empathy_session', targetSessionId);
+            }
+        } catch (err) {
+            console.error('Failed to load conversation:', err);
+            setError('Could not load that conversation');
         }
     }, []);
 
@@ -95,18 +129,32 @@ export const useChat = () => {
                 timestamp: new Date().toISOString()
             }]);
 
+            // Clear any previous token exhaustion state on success
+            setTokenExhausted(null);
+
             // Save encrypted message pair (fire-and-forget, non-blocking)
             chatAPI.saveMessagePair(sessionId, content, aiContent).catch(() => { });
 
         } catch (err) {
             console.error('Failed to send message:', err);
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: "I'm having trouble connecting right now. Please try again in a moment.",
-                timestamp: new Date().toISOString(),
-                isError: true
-            }]);
-            setError('Failed to get response');
+
+            if (err.status === 429 && err.detail?.error_type === 'token_exhausted') {
+                const retrySeconds = err.detail.retry_after_seconds || 90;
+                setTokenExhausted({
+                    message: err.detail.message,
+                    retryAfter: retrySeconds
+                });
+                setMessages(prev => prev.slice(0, -1));
+                setTimeout(() => setTokenExhausted(null), retrySeconds * 1000);
+            } else {
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: "I'm having trouble connecting right now. Please try again in a moment.",
+                    timestamp: new Date().toISOString(),
+                    isError: true
+                }]);
+                setError('Failed to get response');
+            }
         } finally {
             setIsTyping(false);
         }
@@ -125,9 +173,13 @@ export const useChat = () => {
         sessionId,
         isConnected,
         error,
+        tokenExhausted,
+        conversations,
         sendMessage,
         startNewSession,
-        clearHistory
+        clearHistory,
+        fetchConversations,
+        loadConversation
     };
 };
 

@@ -1,16 +1,16 @@
 /**
  * BottomSheet Component
  * Modern slide-up panel replacement for the traditional sidebar.
- * Contains: user profile, quick actions, navigation, and sign-out.
+ * Contains: user profile, quick actions, conversation history, and sign-out.
  */
 
-import { X, Plus, Settings, Info, LogOut, User, Shield, Trash2, Heart } from "lucide-react";
+import { X, Plus, Settings, Info, LogOut, User, Shield, Trash2, Heart, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const ADMIN_EMAIL = "itsvarun310@gmail.com";
 
-const BottomSheet = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
+const BottomSheet = ({ isOpen, onClose, onNewChat, onClearHistory, conversations = [], onLoadConversation }) => {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -23,6 +23,17 @@ const BottomSheet = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
     const handleNav = (path) => {
         onClose();
         navigate(path);
+    };
+
+    const formatTimeAgo = (dateStr) => {
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        const days = Math.floor(hrs / 24);
+        return `${days}d ago`;
     };
 
     return (
@@ -145,6 +156,52 @@ const BottomSheet = ({ isOpen, onClose, onNewChat, onClearHistory }) => {
                             />
                         )}
                     </div>
+
+                    {/* Past Conversations — Empathetic Design */}
+                    {isAuthenticated && conversations.length > 0 && (
+                        <div className="mb-5 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                            <div className="flex items-center gap-2 px-1 mb-3">
+                                <Heart className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)', opacity: 0.6 }} />
+                                <p className="text-[11px] font-semibold uppercase tracking-wider"
+                                    style={{ color: 'var(--color-text-muted)' }}>
+                                    Your Journey
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                {conversations.slice(0, 5).map((conv) => (
+                                    <button
+                                        key={conv.session_id}
+                                        onClick={() => { onLoadConversation?.(conv.session_id); onClose(); }}
+                                        className="w-full text-left p-3.5 rounded-xl transition-all duration-200 active:scale-[0.98]"
+                                        style={{
+                                            background: 'var(--color-surface)',
+                                            border: '1px solid var(--color-border)',
+                                        }}
+                                    >
+                                        <div className="flex items-start gap-2.5">
+                                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                                                style={{ background: 'var(--color-primary)', opacity: 0.5 }} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm truncate font-medium"
+                                                    style={{ color: 'var(--color-text-secondary)' }}>
+                                                    {conv.preview}
+                                                </p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Clock className="w-3 h-3" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }} />
+                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                                        {formatTimeAgo(conv.last_active)}
+                                                    </span>
+                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
+                                                        · {conv.message_count} messages
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Danger Zone */}
                     <div className="space-y-1.5">
