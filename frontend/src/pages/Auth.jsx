@@ -18,6 +18,7 @@ const AuthPage = () => {
     // Default to REGISTER mode
     const [isLogin, setIsLogin] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [step, setStep] = useState(0);
     const [greeting, setGreeting] = useState('');
@@ -147,6 +148,24 @@ const AuthPage = () => {
                 width: '200px', height: '200px', background: '#E9EDC9',
                 top: '40%', left: '60%', animationDelay: '4s'
             }} />
+
+            {/* Google Sign-In loading overlay */}
+            {googleLoading && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+                    style={{ background: 'var(--color-bg)', opacity: 0.97 }}>
+                    <div className="flex flex-col items-center gap-5 animate-fade-in">
+                        <div className="relative">
+                            <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'var(--color-primary)' }} />
+                        </div>
+                        <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                            Signing you in...
+                        </p>
+                        <p className="text-sm" style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-muted)' }}>
+                            Hang tight, this may take a moment
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Main content */}
             <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 overflow-y-auto">
@@ -280,7 +299,10 @@ const AuthPage = () => {
                                     }}
                                 >
                                     {loading ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            <span>{isLogin ? 'Signing in...' : 'Creating account...'}</span>
+                                        </span>
                                     ) : (
                                         <>
                                             {isLogin ? 'Enter Solace' : 'Begin Your Journey'}
@@ -300,7 +322,7 @@ const AuthPage = () => {
                             </div>
 
                             {GOOGLE_CLIENT_ID ? (
-                                <GoogleSignInButton googleLogin={googleLogin} navigate={navigate} />
+                                <GoogleSignInButton googleLogin={googleLogin} navigate={navigate} setGoogleLoading={setGoogleLoading} />
                             ) : (
                                 <CustomGoogleButton googleLogin={googleLogin} navigate={navigate} />
                             )}
@@ -354,7 +376,7 @@ const AuthPage = () => {
 /**
  * Google Sign-In Button (with GIS library)
  */
-const GoogleSignInButton = ({ googleLogin, navigate }) => {
+const GoogleSignInButton = ({ googleLogin, navigate, setGoogleLoading }) => {
     const buttonRef = useRef(null);
 
     useEffect(() => {
@@ -363,11 +385,14 @@ const GoogleSignInButton = ({ googleLogin, navigate }) => {
         window.google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: async (response) => {
+                setGoogleLoading(true);
                 try {
                     await googleLogin(response.credential);
                     navigate('/');
                 } catch (err) {
                     console.error('Google login failed:', err);
+                } finally {
+                    setGoogleLoading(false);
                 }
             },
         });
@@ -380,7 +405,7 @@ const GoogleSignInButton = ({ googleLogin, navigate }) => {
             shape: "pill",
             width: "400",
         });
-    }, [googleLogin, navigate]);
+    }, [googleLogin, navigate, setGoogleLoading]);
 
     return <div ref={buttonRef} className="flex justify-center" />;
 };
