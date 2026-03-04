@@ -37,6 +37,12 @@ const AuthPage = () => {
         displayName: useRef(null)
     };
 
+    // Warm up the backend on page load (Render free tier sleeps after 15 min)
+    useEffect(() => {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        fetch(`${apiUrl}/health`).catch(() => {});
+    }, []);
+
     // Typewriter greeting animation
     useEffect(() => {
         const greetingText = "Welcome to Solace";

@@ -83,11 +83,24 @@ export const AuthProvider = ({ children }) => {
         setError(null);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-            const response = await fetch(`${apiUrl}/auth/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential })
-            });
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 60000);
+            let response;
+            try {
+                response = await fetch(`${apiUrl}/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential }),
+                    signal: controller.signal
+                });
+            } catch (fetchErr) {
+                if (fetchErr.name === 'AbortError') {
+                    throw new Error('Server is starting up — please try again in a few seconds');
+                }
+                throw fetchErr;
+            } finally {
+                clearTimeout(timer);
+            }
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.detail || 'Google login failed');

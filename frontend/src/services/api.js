@@ -9,6 +9,25 @@ import { authAPI } from './auth';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 /**
+ * Fetch with timeout to prevent infinite hangs on Render cold start.
+ */
+const fetchWithTimeout = async (url, options = {}, timeout = 60000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timer);
+        return response;
+    } catch (err) {
+        clearTimeout(timer);
+        if (err.name === 'AbortError') {
+            throw new Error('Request timed out — server may be starting up, please retry');
+        }
+        throw err;
+    }
+};
+
+/**
  * Chat API endpoints
  */
 export const chatAPI = {
@@ -16,7 +35,7 @@ export const chatAPI = {
    * Send a message and get a response.
    */
   async sendMessage({ message, session_id, mode }) {
-    const response = await fetch(`${API_BASE}/chat`, {
+    const response = await fetchWithTimeout(`${API_BASE}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
