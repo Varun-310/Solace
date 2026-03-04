@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Loader2, Sparkles, Leaf, Globe, Heart, Cloud } from 'lucide-react';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -431,10 +431,10 @@ const CustomGoogleButton = ({ navigate }) => {
  * Immersive signing-in overlay — calming breathing orb + rotating messages
  */
 const SIGNING_MESSAGES = [
-    { text: "Preparing your safe space", icon: "🌿" },
-    { text: "Connecting to Solace", icon: "✦" },
-    { text: "Almost there", icon: "🤍" },
-    { text: "Setting things up for you", icon: "☁️" },
+    { text: "Preparing your safe space", Icon: Leaf },
+    { text: "Connecting to Solace", Icon: Globe },
+    { text: "Almost there", Icon: Heart },
+    { text: "Setting things up for you", Icon: Cloud },
 ];
 
 const SigningInOverlay = () => {
@@ -527,8 +527,8 @@ const SigningInOverlay = () => {
 
                 {/* Rotating message */}
                 <div className="text-center" style={{ minHeight: 56 }}>
-                    <div className={`flex items-center justify-center gap-2 transition-all duration-300 ease-out ${fadeClass}`}>
-                        <span className="text-lg">{msg.icon}</span>
+                    <div className={`flex items-center justify-center gap-3 transition-all duration-300 ease-out ${fadeClass}`}>
+                        <msg.Icon className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                         <p className="text-xl font-medium"
                             style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
                             {msg.text}<span style={{ color: 'var(--color-primary)' }}>{dots}</span>
@@ -556,7 +556,7 @@ const SigningInOverlay = () => {
                 {elapsed >= 8 && (
                     <p className="text-xs animate-fade-in text-center max-w-xs"
                         style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
-                        Our server is waking up — free hosting can be slow on first visit. Thanks for your patience 💚
+                        Our server is waking up — free hosting can be slow on first visit. Thanks for your patience.
                     </p>
                 )}
             </div>
