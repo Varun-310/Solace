@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -99,7 +99,6 @@ const AuthPage = () => {
             navigate('/');
         } catch {
             // Error handled by auth hook
-        } finally {
             setLoading(false);
         }
     };
@@ -149,23 +148,8 @@ const AuthPage = () => {
                 top: '40%', left: '60%', animationDelay: '4s'
             }} />
 
-            {/* Google Sign-In loading overlay */}
-            {googleLoading && (
-                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-                    style={{ background: 'var(--color-bg)', opacity: 0.97 }}>
-                    <div className="flex flex-col items-center gap-5 animate-fade-in">
-                        <div className="relative">
-                            <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'var(--color-primary)' }} />
-                        </div>
-                        <p className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
-                            Signing you in...
-                        </p>
-                        <p className="text-sm" style={{ fontFamily: 'var(--font-body)', color: 'var(--color-text-muted)' }}>
-                            Hang tight, this may take a moment
-                        </p>
-                    </div>
-                </div>
-            )}
+            {/* Signing-in loading overlay (Google or regular login) */}
+            {(googleLoading || loading) && <SigningInOverlay />}
 
             {/* Main content */}
             <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 overflow-y-auto">
@@ -440,6 +424,143 @@ const CustomGoogleButton = ({ navigate }) => {
             </svg>
             Continue with Google
         </button>
+    );
+};
+
+/**
+ * Immersive signing-in overlay — calming breathing orb + rotating messages
+ */
+const SIGNING_MESSAGES = [
+    { text: "Preparing your safe space", icon: "🌿" },
+    { text: "Connecting to Solace", icon: "✦" },
+    { text: "Almost there", icon: "🤍" },
+    { text: "Setting things up for you", icon: "☁️" },
+];
+
+const SigningInOverlay = () => {
+    const [msgIndex, setMsgIndex] = useState(0);
+    const [fadeClass, setFadeClass] = useState('opacity-100');
+    const [dots, setDots] = useState('');
+    const [elapsed, setElapsed] = useState(0);
+
+    // Rotate messages every 3s with fade transition
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setFadeClass('opacity-0 translate-y-1');
+            setTimeout(() => {
+                setMsgIndex(prev => (prev + 1) % SIGNING_MESSAGES.length);
+                setFadeClass('opacity-100 translate-y-0');
+            }, 300);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Animate dots
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDots(prev => prev.length >= 3 ? '' : prev + '.');
+        }, 500);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Track elapsed time for "taking longer" hint
+    useEffect(() => {
+        const interval = setInterval(() => setElapsed(prev => prev + 1), 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const msg = SIGNING_MESSAGES[msgIndex];
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'var(--color-bg)' }}>
+
+            {/* Floating ambient shapes */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute rounded-full"
+                    style={{
+                        width: 220, height: 220, background: 'rgba(58, 125, 92, 0.06)',
+                        top: '15%', left: '10%', animation: 'orb-drift-1 8s ease-in-out infinite'
+                    }} />
+                <div className="absolute rounded-full"
+                    style={{
+                        width: 180, height: 180, background: 'rgba(200, 149, 108, 0.07)',
+                        bottom: '20%', right: '12%', animation: 'orb-drift-2 10s ease-in-out infinite'
+                    }} />
+                <div className="absolute rounded-full"
+                    style={{
+                        width: 140, height: 140, background: 'rgba(216, 243, 220, 0.15)',
+                        top: '50%', left: '55%', animation: 'orb-drift-3 12s ease-in-out infinite'
+                    }} />
+            </div>
+
+            {/* Center content */}
+            <div className="relative flex flex-col items-center gap-8 animate-fade-in px-6">
+
+                {/* Breathing orb */}
+                <div className="relative flex items-center justify-center" style={{ width: 96, height: 96 }}>
+                    {/* Outer ring pulse */}
+                    <div className="absolute inset-0 rounded-full"
+                        style={{
+                            background: 'transparent',
+                            border: '2px solid rgba(58, 125, 92, 0.15)',
+                            animation: 'breathe 4s ease-in-out infinite',
+                        }} />
+                    {/* Middle ring */}
+                    <div className="absolute rounded-full"
+                        style={{
+                            width: 72, height: 72,
+                            background: 'rgba(58, 125, 92, 0.06)',
+                            animation: 'breathe 4s ease-in-out infinite 0.5s',
+                        }} />
+                    {/* Inner orb */}
+                    <div className="absolute rounded-full flex items-center justify-center"
+                        style={{
+                            width: 48, height: 48,
+                            background: 'linear-gradient(135deg, var(--color-primary) 0%, #2B5E44 100%)',
+                            animation: 'breathe 4s ease-in-out infinite 1s',
+                            boxShadow: '0 0 30px rgba(58, 125, 92, 0.25)',
+                        }}>
+                        <Sparkles className="w-5 h-5 text-white" style={{ opacity: 0.9 }} />
+                    </div>
+                </div>
+
+                {/* Rotating message */}
+                <div className="text-center" style={{ minHeight: 56 }}>
+                    <div className={`flex items-center justify-center gap-2 transition-all duration-300 ease-out ${fadeClass}`}>
+                        <span className="text-lg">{msg.icon}</span>
+                        <p className="text-xl font-medium"
+                            style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text)' }}>
+                            {msg.text}<span style={{ color: 'var(--color-primary)' }}>{dots}</span>
+                        </p>
+                    </div>
+                </div>
+
+                {/* Progress dots */}
+                <div className="flex items-center gap-2">
+                    {SIGNING_MESSAGES.map((_, i) => (
+                        <div
+                            key={i}
+                            className="rounded-full transition-all duration-500"
+                            style={{
+                                width: i === msgIndex ? 24 : 6,
+                                height: 6,
+                                background: i === msgIndex ? 'var(--color-primary)' : 'var(--color-border)',
+                                opacity: i === msgIndex ? 1 : 0.4,
+                            }}
+                        />
+                    ))}
+                </div>
+
+                {/* Slow server hint — appears after 8 seconds */}
+                {elapsed >= 8 && (
+                    <p className="text-xs animate-fade-in text-center max-w-xs"
+                        style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-body)' }}>
+                        Our server is waking up — free hosting can be slow on first visit. Thanks for your patience 💚
+                    </p>
+                )}
+            </div>
+        </div>
     );
 };
 
