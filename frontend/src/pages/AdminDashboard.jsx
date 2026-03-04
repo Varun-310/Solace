@@ -39,29 +39,51 @@ const AdminDashboard = () => {
     const loadData = async () => {
         setLoading(true);
         setError('');
-        try {
-            const headers = authAPI.getAuthHeaders();
-            const [statsRes, usersRes, msgRes] = await Promise.all([
-                fetch(`${API_BASE}/stats`, { headers }),
-                fetch(`${API_BASE}/users`, { headers }),
-                fetch(`${API_BASE}/messages/stats`, { headers })
-            ]);
+        const headers = authAPI.getAuthHeaders();
+        const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
+        try {
+            // Stats — critical (also validates admin access)
+            const statsRes = await Promise.race([
+                fetch(`${API_BASE}/stats`, { headers }),
+                timeout(8000)
+            ]);
             if (statsRes.status === 404) {
                 navigate('/', { replace: true });
                 return;
             }
-
-            setStats(await statsRes.json());
-            const userData = await usersRes.json();
-            setUsers(userData.users || []);
-            const msgData = await msgRes.json();
-            setMsgStats(msgData.per_user || []);
+            if (statsRes.ok) setStats(await statsRes.json());
         } catch {
-            setError('Failed to load admin data');
-        } finally {
+            setError('Could not reach admin API');
             setLoading(false);
+            return;
         }
+
+        // Users — load independently
+        try {
+            const usersRes = await Promise.race([
+                fetch(`${API_BASE}/users`, { headers }),
+                timeout(8000)
+            ]);
+            if (usersRes.ok) {
+                const ud = await usersRes.json();
+                setUsers(ud.users || []);
+            }
+        } catch { /* non-critical */ }
+
+        // Message stats — load independently
+        try {
+            const msgRes = await Promise.race([
+                fetch(`${API_BASE}/messages/stats`, { headers }),
+                timeout(8000)
+            ]);
+            if (msgRes.ok) {
+                const md = await msgRes.json();
+                setMsgStats(md.per_user || []);
+            }
+        } catch { /* non-critical */ }
+
+        setLoading(false);
     };
 
     const deleteUser = async (userId) => {
