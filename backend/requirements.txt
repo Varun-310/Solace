@@ -7,18 +7,12 @@ pydantic[email]>=2.5.0
 pydantic-settings>=2.1.0
 email-validator>=2.1.0
 
-# AI/ML - Emotion Classification
-transformers>=4.37.0
-torch>=2.0.0
-accelerate>=0.26.0
-
-# Groq Cloud LLM
+# Groq Cloud LLM (also powers emotion detection)
 groq>=0.4.0
 
 # Database (Supabase PostgreSQL)
 sqlalchemy>=2.0.25
 asyncpg>=0.29.0
-
 
 # Security
 cryptography>=42.0.0

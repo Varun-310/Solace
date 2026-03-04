@@ -93,7 +93,6 @@ def _user_response(user: User) -> UserResponse:
         theme=user.theme,
         chat_mode=user.chat_mode,
         notifications_enabled=user.notifications_enabled,
-        encryption_salt=user.encryption_salt,
         created_at=user.created_at
     )
 

@@ -4,14 +4,11 @@ A compassionate mental health companion powered by AI.
 """
 
 import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"          # Suppress TF warnings
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"         # Suppress oneDNN messages
-os.environ["TRANSFORMERS_VERBOSITY"] = "error"     # Only show errors from transformers
+
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import threading
 
 from api.routes import router, preload_services
 from api.auth import router as auth_router
@@ -27,20 +24,17 @@ async def lifespan(app: FastAPI):
     await init_db()
     print("✅ Database initialized (Supabase PostgreSQL)")
     
-    # Pre-load AI services in background thread so server starts accepting requests immediately
-    def _preload():
-        print("🔄 Pre-loading AI services in background...")
-        preload_services()
-        print("✅ All AI services ready!")
-    
-    thread = threading.Thread(target=_preload, daemon=True)
-    thread.start()
+    # Initialize AI services (lightweight — no heavy models)
+    print("🔄 Initializing AI services...")
+    preload_services()
+    print("✅ All AI services ready!")
     
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║                    Solace Backend v2.2                       ║
+║                    Solace Backend v2.3                       ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  LLM: Groq ({settings.GROQ_MODEL:<44}) ║
+║  Emotion: Groq-powered (lightweight)                        ║
 ║  Database: Supabase PostgreSQL                               ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
