@@ -183,61 +183,9 @@ ENCRYPTION_SECRET=your-random-secret
 | `/api/auth/login` | POST | No | Log in |
 | `/api/auth/me` | GET | Yes | Get current user |
 
-## 🚀 Production Deployment (Free Tier)
+## 🚀 Production Deployment
 
-### Step 1: Frontend → Vercel
-
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) → Import your repository
-3. Set framework to **Vite**
-4. Add environment variable: `VITE_API_URL` = your backend URL + `/api`
-5. Deploy — you'll get a `https://your-app.vercel.app` URL
-
-### Step 2: Backend → Render
-
-1. Go to [render.com](https://render.com) → New Web Service
-2. Connect your GitHub repository
-3. Settings:
-   - **Root Directory**: `backend`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Environment**: Python 3.11
-4. Add all environment variables from your `.env` file
-5. Deploy — you'll get a `https://your-app.onrender.com` URL
-
-### Step 3: Database → Supabase (Already Done)
-
-Your Supabase PostgreSQL is already in production. Just ensure your Render backend has the correct `DB_*` environment variables.
-
-### Step 4: Update CORS
-
-In `backend/main.py`, add your Vercel URL to the CORS origins list:
-
-```python
-allow_origins=[
-    "https://your-app.vercel.app",
-    "http://localhost:3000",
-]
-```
-
-### Step 5: Update Frontend API URL
-
-Set `VITE_API_URL` in Vercel's environment variables:
-
-```
-VITE_API_URL=https://your-app.onrender.com/api
-```
-
-### Free Tier Limits
-
-| Service | Free Tier Limit |
-|---------|----------------|
-| **Groq** | 6,000 requests/day, 30/min |
-| **Supabase** | 500MB database, 1GB storage |
-| **Render** | 750 hours/month, sleeps after 15 min inactivity |
-| **Vercel** | 100GB bandwidth/month |
-
-> **Note**: Render's free tier sleeps after 15 minutes of inactivity. First request after sleep takes ~30 seconds to cold-start. Consider using [UptimeRobot](https://uptimerobot.com) to ping your backend every 14 minutes to keep it alive.
+See **[PRODUCTION.md](PRODUCTION.md)** for a complete step-by-step guide to deploying Solace on free-tier services (Vercel + Render + Supabase).
 
 ## 🔒 Privacy & Security
 
