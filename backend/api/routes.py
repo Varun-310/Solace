@@ -392,3 +392,25 @@ async def load_session_messages(
         })
     
     return {"session_id": session_id, "messages": decrypted_messages}
+
+
+@router.delete("/chat/session/{session_id}")
+async def delete_session(
+    session_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete all messages for a specific session (authenticated user only)."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    from sqlalchemy import delete as sql_delete
+    await db.execute(
+        sql_delete(ChatMessage).where(
+            ChatMessage.user_id == user.id,
+            ChatMessage.session_id == session_id
+        )
+    )
+    await db.commit()
+    
+    return {"status": "deleted", "session_id": session_id}

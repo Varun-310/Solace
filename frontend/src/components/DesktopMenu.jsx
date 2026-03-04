@@ -1,17 +1,26 @@
 /**
  * DesktopMenu Component
  * Floating glassmorphic dock menu for desktop screens.
+ * Uses ConfirmModal for all destructive actions instead of browser's `window.confirm()`.
  */
 
-import { X, Plus, Settings, Info, LogOut, User, Shield, Trash2, Heart, MessageCircle, Clock } from "lucide-react";
+import { useState } from "react";
+import { X, Plus, Settings, Info, LogOut, User, Shield, Trash2, Heart, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import ConfirmModal from "./ConfirmModal";
 
 const ADMIN_EMAIL = "itsvarun310@gmail.com";
 
-const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations = [], onLoadConversation }) => {
+const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations = [], onLoadConversation, onDeleteConversation }) => {
     const { user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
+
+    // Modal state
+    const [modal, setModal] = useState({ isOpen: false, title: "", message: "", variant: "default", onConfirm: () => { } });
+
+    const showModal = (config) => setModal({ isOpen: true, ...config });
+    const closeModal = () => setModal(prev => ({ ...prev, isOpen: false }));
 
     if (!isOpen) return null;
 
@@ -39,11 +48,18 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations
 
     return (
         <>
-            {/* Invisible backdrop to dismiss click outside */}
-            <div
-                className="fixed inset-0 z-40 hidden md:block"
-                onClick={onClose}
+            <ConfirmModal
+                isOpen={modal.isOpen}
+                onClose={closeModal}
+                onConfirm={modal.onConfirm}
+                title={modal.title}
+                message={modal.message}
+                confirmLabel={modal.confirmLabel || "Confirm"}
+                variant={modal.variant}
             />
+
+            {/* Invisible backdrop */}
+            <div className="fixed inset-0 z-40 hidden md:block" onClick={onClose} />
 
             {/* Floating Dropdown Card */}
             <div
@@ -90,8 +106,7 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations
                                 </div>
                             </div>
                         ) : (
-                            <Link to="/auth" onClick={onClose}
-                                className="flex items-center gap-3">
+                            <Link to="/auth" onClick={onClose} className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
                                     style={{ border: '2px dashed var(--color-border)', color: 'var(--color-text-muted)' }}>
                                     <User className="w-5 h-5" />
@@ -104,7 +119,7 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations
                         )}
                     </div>
 
-                    {/* Quick Actions List */}
+                    {/* Quick Actions */}
                     <div className="space-y-1 mb-4">
                         <MenuItem icon={Plus} label="New Chat" color="var(--color-primary)" onClick={() => { onNewChat?.(); onClose(); }} />
                         <MenuItem icon={Settings} label="Settings" onClick={() => handleNav('/settings')} />
@@ -126,38 +141,54 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations
                             </div>
                             <div className="space-y-1.5">
                                 {conversations.slice(0, 5).map((conv) => (
-                                    <button
-                                        key={conv.session_id}
-                                        onClick={() => { onLoadConversation?.(conv.session_id); onClose(); }}
-                                        className="w-full text-left p-3 rounded-xl transition-all duration-200 group"
-                                        style={{ background: 'transparent' }}
-                                        onMouseEnter={e => {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(58, 125, 92, 0.05) 0%, rgba(200, 149, 108, 0.03) 100%)';
-                                        }}
-                                        onMouseLeave={e => {
-                                            e.currentTarget.style.background = 'transparent';
-                                        }}
-                                    >
-                                        <div className="flex items-start gap-2.5">
-                                            <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
-                                                style={{ background: 'var(--color-primary)', opacity: 0.5 }} />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm truncate font-medium"
-                                                    style={{ color: 'var(--color-text-secondary)' }}>
-                                                    {conv.preview}
-                                                </p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <Clock className="w-3 h-3" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }} />
-                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
-                                                        {formatTimeAgo(conv.last_active)}
-                                                    </span>
-                                                    <span className="text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
-                                                        · {conv.message_count} messages
-                                                    </span>
+                                    <div key={conv.session_id} className="group relative">
+                                        <button
+                                            onClick={() => { onLoadConversation?.(conv.session_id); onClose(); }}
+                                            className="w-full text-left p-3 rounded-xl transition-all duration-200"
+                                            style={{ background: 'transparent' }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(58, 125, 92, 0.05) 0%, rgba(200, 149, 108, 0.03) 100%)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <div className="flex items-start gap-2.5 pr-6">
+                                                <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                                                    style={{ background: 'var(--color-primary)', opacity: 0.5 }} />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm truncate font-medium"
+                                                        style={{ color: 'var(--color-text-secondary)' }}>
+                                                        {conv.preview}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <Clock className="w-3 h-3" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }} />
+                                                        <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                                                            {formatTimeAgo(conv.last_active)}
+                                                        </span>
+                                                        <span className="text-[10px]" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>
+                                                            · {conv.message_count} messages
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </button>
+                                        </button>
+                                        {/* Delete button */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                showModal({
+                                                    title: "Delete this conversation?",
+                                                    message: "This will permanently remove this conversation from your history. This cannot be undone.",
+                                                    confirmLabel: "Delete",
+                                                    variant: "danger",
+                                                    onConfirm: () => onDeleteConversation?.(conv.session_id),
+                                                });
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                            style={{ color: 'var(--color-text-muted)' }}
+                                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-error)'; e.currentTarget.style.background = 'var(--color-error-light)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -166,20 +197,25 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations
                     {/* Danger Zone */}
                     <div className="pt-3 space-y-1 border-t" style={{ borderColor: 'var(--color-border-light)' }}>
                         <MenuItem
-                            icon={Trash2}
-                            label="Clear History"
-                            danger={false}
-                            muted={true}
-                            onClick={() => {
-                                if (window.confirm('Clear all conversation history?')) {
-                                    onClearHistory?.();
-                                    onClose();
-                                }
-                            }}
+                            icon={Trash2} label="Clear History" muted={true}
+                            onClick={() => showModal({
+                                title: "Clear all history?",
+                                message: "This will end the current session and start fresh. Your saved conversations will remain in 'Your Journey'.",
+                                confirmLabel: "Clear",
+                                variant: "danger",
+                                onConfirm: () => { onClearHistory?.(); onClose(); },
+                            })}
                         />
-
                         {isAuthenticated && (
-                            <MenuItem icon={LogOut} label="Sign Out" danger={true} onClick={handleLogout} />
+                            <MenuItem icon={LogOut} label="Sign Out" danger={true}
+                                onClick={() => showModal({
+                                    title: "Sign out?",
+                                    message: "You can always come back. Your conversations will be safely saved.",
+                                    confirmLabel: "Sign Out",
+                                    variant: "gentle",
+                                    onConfirm: handleLogout,
+                                })}
+                            />
                         )}
                     </div>
 
@@ -197,29 +233,19 @@ const DesktopMenu = ({ isOpen, onClose, onNewChat, onClearHistory, conversations
     );
 };
 
-/* Menu Item */
 const MenuItem = ({ icon: Icon, label, onClick, color, danger, muted }) => {
     let textColor = 'var(--color-text-secondary)';
     let hoverBg = 'rgba(0,0,0,0.03)';
-
-    if (danger) {
-        textColor = 'var(--color-error)';
-        hoverBg = 'var(--color-error-light)';
-    } else if (color) {
-        textColor = color;
-        hoverBg = 'var(--color-primary-light)';
-    } else if (muted) {
-        textColor = 'var(--color-text-muted)';
-    }
+    if (danger) { textColor = 'var(--color-error)'; hoverBg = 'var(--color-error-light)'; }
+    else if (color) { textColor = color; hoverBg = 'var(--color-primary-light)'; }
+    else if (muted) { textColor = 'var(--color-text-muted)'; }
 
     return (
-        <button
-            onClick={onClick}
+        <button onClick={onClick}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium text-left"
             style={{ color: textColor }}
             onMouseEnter={e => e.currentTarget.style.background = hoverBg}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
             <Icon className="w-4 h-4 shrink-0" />
             <span className="truncate">{label}</span>
         </button>

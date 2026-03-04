@@ -103,15 +103,24 @@ async def message_stats(
     """Get message statistics per user — admin only. Content is never exposed."""
     require_admin(user)
 
-    # Messages per user (count only, no content)
+    # Messages per user, sessions per user, last activity
     result = await db.execute(
         select(
             ChatMessage.user_id,
-            func.count(ChatMessage.id).label("message_count")
+            func.count(ChatMessage.id).label("message_count"),
+            func.count(func.distinct(ChatMessage.session_id)).label("session_count"),
+            func.max(ChatMessage.created_at).label("last_active"),
+            func.min(ChatMessage.created_at).label("first_message")
         ).group_by(ChatMessage.user_id)
     )
     per_user = [
-        {"user_id": row[0], "message_count": row[1]}
+        {
+            "user_id": row[0],
+            "message_count": row[1],
+            "session_count": row[2],
+            "last_active": row[3].isoformat() if row[3] else None,
+            "first_message": row[4].isoformat() if row[4] else None
+        }
         for row in result.all()
     ]
 

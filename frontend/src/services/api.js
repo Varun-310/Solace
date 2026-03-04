@@ -140,6 +140,18 @@ export const chatAPI = {
     if (!response.ok) throw new Error('Failed to load session');
     return response.json();
   },
+
+  /**
+   * Delete a specific conversation session.
+   */
+  async deleteSession(sessionId) {
+    const response = await fetch(`${API_BASE}/chat/session/${sessionId}`, {
+      method: 'DELETE',
+      headers: authAPI.getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete session');
+    return response.json();
+  },
 };
 
 export default chatAPI;

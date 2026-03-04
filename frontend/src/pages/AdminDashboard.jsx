@@ -1,15 +1,17 @@
 /**
- * Admin Dashboard — Hidden
- * Only accessible by admin email. Returns to home for non-admins.
+ * Admin Dashboard — Enhanced
+ * Only accessible by admin email. Shows user analytics, session tracking,
+ * message stats, and provides management actions with custom modals.
  */
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Activity, Trash2, Shield, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Users, MessageSquare, Activity, Trash2, Shield, ArrowLeft, RefreshCw, Heart, Hash, Clock, Calendar, BarChart3 } from 'lucide-react';
 import { authAPI } from '../services/auth';
+import ConfirmModal from '../components/ConfirmModal';
 
-const API_BASE = 'http://localhost:8000/api/s0l-ctrl';
+const API_BASE = `${import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000'}/api/s0l-ctrl`;
 
 const AdminDashboard = () => {
     const { user, isAuthenticated } = useAuth();
@@ -19,6 +21,11 @@ const AdminDashboard = () => {
     const [msgStats, setMsgStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    // Modal state
+    const [modal, setModal] = useState({ isOpen: false, title: '', message: '', variant: 'default', onConfirm: () => { } });
+    const showModal = (config) => setModal({ isOpen: true, ...config });
+    const closeModal = () => setModal(prev => ({ ...prev, isOpen: false }));
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -57,32 +64,60 @@ const AdminDashboard = () => {
         }
     };
 
-    const deleteUser = async (userId, username) => {
-        if (!window.confirm(`Permanently delete user "${username}" and all their data?`)) return;
+    const deleteUser = async (userId) => {
         try {
             const res = await fetch(`${API_BASE}/users/${userId}`, {
                 method: 'DELETE',
                 headers: authAPI.getAuthHeaders()
             });
-            if (res.ok) {
-                loadData();
-            }
+            if (res.ok) loadData();
         } catch {
             setError('Failed to delete user');
         }
     };
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
+        return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+    };
+
+    const formatTimeAgo = (dateStr) => {
+        if (!dateStr) return 'Never';
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        const days = Math.floor(hrs / 24);
+        if (days < 30) return `${days}d ago`;
+        return `${Math.floor(days / 30)}mo ago`;
+    };
+
     if (loading) {
         return (
             <div className="app-shell flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
-                <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full"
-                    style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                <div className="text-center space-y-3">
+                    <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full mx-auto"
+                        style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                    <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading dashboard...</p>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="app-shell" style={{ background: 'var(--color-bg)', overflowY: 'auto' }}>
+            <ConfirmModal
+                isOpen={modal.isOpen}
+                onClose={closeModal}
+                onConfirm={modal.onConfirm}
+                title={modal.title}
+                message={modal.message}
+                confirmLabel={modal.confirmLabel || "Confirm"}
+                variant={modal.variant}
+            />
+
             {/* Header */}
             <header className="glass shrink-0 px-4 sm:px-6 flex items-center justify-between"
                 style={{ height: '56px', borderBottom: '1px solid var(--color-border-light)' }}>
@@ -111,9 +146,36 @@ const AdminDashboard = () => {
                 {stats && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <StatCard icon={Users} label="Total Users" value={stats.total_users} />
-                        <StatCard icon={MessageSquare} label="Messages" value={stats.total_messages} color="#D4A373" />
-                        <StatCard icon={Activity} label="Sessions" value={stats.active_sessions} color="#0891B2" />
-                        <StatCard icon={Users} label="New (7d)" value={stats.recent_signups} color="#40916C" />
+                        <StatCard icon={MessageSquare} label="Total Messages" value={stats.total_messages} color="#C8956C" />
+                        <StatCard icon={Activity} label="Active Sessions" value={stats.active_sessions} color="#0891B2" />
+                        <StatCard icon={Users} label="New (7 days)" value={stats.recent_signups} color="#40916C" />
+                    </div>
+                )}
+
+                {/* Engagement Overview */}
+                {msgStats.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <StatCard
+                            icon={BarChart3}
+                            label="Avg Messages/User"
+                            value={Math.round(msgStats.reduce((s, m) => s + m.message_count, 0) / msgStats.length)}
+                            color="#7B6BA0"
+                        />
+                        <StatCard
+                            icon={Hash}
+                            label="Total Sessions"
+                            value={msgStats.reduce((s, m) => s + (m.session_count || 0), 0)}
+                            color="#3A7D5C"
+                        />
+                        <StatCard
+                            icon={Heart}
+                            label="Active Users"
+                            value={msgStats.filter(m => {
+                                if (!m.last_active) return false;
+                                return (Date.now() - new Date(m.last_active).getTime()) < 7 * 86400000;
+                            }).length}
+                            color="#C75050"
+                        />
                     </div>
                 )}
 
@@ -135,8 +197,10 @@ const AdminDashboard = () => {
                                 <tr style={{ background: 'var(--color-cream)' }}>
                                     <th className="text-left px-5 py-2.5 text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>User</th>
                                     <th className="text-left px-5 py-2.5 text-xs font-medium hidden sm:table-cell" style={{ color: 'var(--color-text-secondary)' }}>Email</th>
-                                    <th className="text-left px-5 py-2.5 text-xs font-medium hidden md:table-cell" style={{ color: 'var(--color-text-secondary)' }}>Joined</th>
-                                    <th className="text-left px-5 py-2.5 text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Messages</th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Messages</th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-medium hidden md:table-cell" style={{ color: 'var(--color-text-secondary)' }}>Sessions</th>
+                                    <th className="text-left px-3 py-2.5 text-xs font-medium hidden lg:table-cell" style={{ color: 'var(--color-text-secondary)' }}>Last Active</th>
+                                    <th className="text-left px-3 py-2.5 text-xs font-medium hidden md:table-cell" style={{ color: 'var(--color-text-secondary)' }}>Joined</th>
                                     <th className="text-right px-5 py-2.5 text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -144,7 +208,8 @@ const AdminDashboard = () => {
                                 {users.map(u => {
                                     const msgs = msgStats.find(m => m.user_id === u.id);
                                     return (
-                                        <tr key={u.id} style={{ borderTop: '1px solid var(--color-border-light)' }}>
+                                        <tr key={u.id} style={{ borderTop: '1px solid var(--color-border-light)' }}
+                                            className="hover:bg-black/[0.015] transition-colors">
                                             <td className="px-5 py-3">
                                                 <div className="flex items-center gap-2.5">
                                                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium"
@@ -160,16 +225,44 @@ const AdminDashboard = () => {
                                             <td className="px-5 py-3 text-sm hidden sm:table-cell" style={{ color: 'var(--color-text-secondary)' }}>
                                                 {u.email}
                                             </td>
-                                            <td className="px-5 py-3 text-xs hidden md:table-cell" style={{ color: 'var(--color-text-muted)' }}>
-                                                {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                                            <td className="px-3 py-3 text-center">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                                                    style={{
+                                                        background: msgs?.message_count > 0 ? 'rgba(200, 149, 108, 0.1)' : 'transparent',
+                                                        color: msgs?.message_count > 0 ? '#C8956C' : 'var(--color-text-muted)'
+                                                    }}>
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {msgs?.message_count || 0}
+                                                </span>
                                             </td>
-                                            <td className="px-5 py-3 text-sm" style={{ color: 'var(--color-text)' }}>
-                                                {msgs?.message_count || 0}
+                                            <td className="px-3 py-3 text-center hidden md:table-cell">
+                                                <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                                    <Hash className="w-3 h-3" />
+                                                    {msgs?.session_count || 0}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 hidden lg:table-cell">
+                                                <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                                    <Clock className="w-3 h-3" />
+                                                    {formatTimeAgo(msgs?.last_active)}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-3 hidden md:table-cell">
+                                                <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                                                    <Calendar className="w-3 h-3" />
+                                                    {formatDate(u.created_at)}
+                                                </div>
                                             </td>
                                             <td className="px-5 py-3 text-right">
                                                 {u.email !== 'itsvarun310@gmail.com' && (
                                                     <button
-                                                        onClick={() => deleteUser(u.id, u.username)}
+                                                        onClick={() => showModal({
+                                                            title: `Delete "${u.display_name || u.username}"?`,
+                                                            message: `This will permanently delete this user and all their messages, sessions, and data. This action cannot be undone.`,
+                                                            confirmLabel: "Delete User",
+                                                            variant: "danger",
+                                                            onConfirm: () => deleteUser(u.id),
+                                                        })}
                                                         className="p-1.5 rounded-lg transition-colors"
                                                         style={{ color: 'var(--color-error)' }}
                                                         onMouseEnter={e => e.currentTarget.style.background = 'var(--color-error-light)'}
@@ -185,7 +278,7 @@ const AdminDashboard = () => {
                                 })}
                                 {users.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                        <td colSpan={7} className="text-center py-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                                             No users yet
                                         </td>
                                     </tr>
@@ -196,9 +289,9 @@ const AdminDashboard = () => {
                 </section>
 
                 {/* Security Note */}
-                <div className="text-center text-xs py-4" style={{ color: 'var(--color-text-muted)' }}>
+                <div className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--color-text-muted)' }}>
                     <p>🔒 All chat messages are encrypted — content cannot be viewed here</p>
-                    <p className="mt-1">Admin access: {user?.email}</p>
+                    <p>Admin access: {user?.email}</p>
                 </div>
             </main>
         </div>

@@ -167,6 +167,22 @@ export const useChat = () => {
         await startNewSession();
     }, [sessionId, startNewSession]);
 
+    // Delete a specific conversation
+    const deleteConversation = useCallback(async (targetSessionId) => {
+        try {
+            await chatAPI.deleteSession(targetSessionId);
+            // Remove from local conversations list
+            setConversations(prev => prev.filter(c => c.session_id !== targetSessionId));
+            // If the deleted session is the current one, start fresh
+            if (targetSessionId === sessionId) {
+                await startNewSession();
+            }
+        } catch (err) {
+            console.error('Failed to delete conversation:', err);
+            setError('Could not delete that conversation');
+        }
+    }, [sessionId, startNewSession]);
+
     return {
         messages,
         isTyping,
@@ -179,7 +195,8 @@ export const useChat = () => {
         startNewSession,
         clearHistory,
         fetchConversations,
-        loadConversation
+        loadConversation,
+        deleteConversation
     };
 };
 

@@ -26,7 +26,8 @@ const ChatBot = () => {
     startNewSession,
     clearHistory,
     fetchConversations,
-    loadConversation
+    loadConversation,
+    deleteConversation
   } = useChat();
 
   const { user, isAuthenticated } = useAuth();
@@ -98,6 +99,7 @@ const ChatBot = () => {
           onClearHistory={clearHistory}
           conversations={conversations}
           onLoadConversation={loadConversation}
+          onDeleteConversation={deleteConversation}
         />
       </div>
 
@@ -109,6 +111,7 @@ const ChatBot = () => {
         onClearHistory={clearHistory}
         conversations={conversations}
         onLoadConversation={loadConversation}
+        onDeleteConversation={deleteConversation}
       />
 
       {/* ── Header ── */}
