@@ -488,7 +488,16 @@ h6 {
       #E8E2DA 60%,
       #F0EDE8 100%);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+.chat-messages-area::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
 }
 
 /* Message card hover */
