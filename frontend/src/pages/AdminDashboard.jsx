@@ -32,6 +32,9 @@ const AdminDashboard = () => {
             navigate('/', { replace: true });
             return;
         }
+        // Warm up backend (Render free tier cold start)
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        fetch(`${apiUrl}/health`).catch(() => {});
         loadData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated]);
@@ -46,7 +49,7 @@ const AdminDashboard = () => {
             // Stats — critical (also validates admin access)
             const statsRes = await Promise.race([
                 fetch(`${API_BASE}/stats`, { headers }),
-                timeout(8000)
+                timeout(60000)
             ]);
             if (statsRes.status === 404) {
                 navigate('/', { replace: true });
@@ -54,7 +57,7 @@ const AdminDashboard = () => {
             }
             if (statsRes.ok) setStats(await statsRes.json());
         } catch {
-            setError('Could not reach admin API');
+            setError('Could not reach admin API — server may be waking up, try refreshing');
             setLoading(false);
             return;
         }
@@ -63,7 +66,7 @@ const AdminDashboard = () => {
         try {
             const usersRes = await Promise.race([
                 fetch(`${API_BASE}/users`, { headers }),
-                timeout(8000)
+                timeout(30000)
             ]);
             if (usersRes.ok) {
                 const ud = await usersRes.json();
@@ -75,7 +78,7 @@ const AdminDashboard = () => {
         try {
             const msgRes = await Promise.race([
                 fetch(`${API_BASE}/messages/stats`, { headers }),
-                timeout(8000)
+                timeout(30000)
             ]);
             if (msgRes.ok) {
                 const md = await msgRes.json();
