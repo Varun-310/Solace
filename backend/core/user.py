@@ -121,6 +121,16 @@ class PasswordReset(Base):
         return not self.used and datetime.utcnow() < self.expires_at
 
 
+class ActiveContext(Base):
+    """Temporary storage for active chat session context used by the LLM."""
+    __tablename__ = "active_contexts"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(36), nullable=False, index=True)
+    message_data = Column(Text, nullable=False)  # JSON string containing role, content, emotion
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 # Database setup — Supabase PostgreSQL via asyncpg
 # Uses pydantic settings which auto-loads from .env
 from config import settings
@@ -153,7 +163,6 @@ AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=F
 
 
 async def init_db():
-    """Initialize database tables."""
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -162,6 +171,5 @@ async def init_db():
 
 
 async def get_db():
-    """Get database session."""
     async with AsyncSessionLocal() as session:
         yield session

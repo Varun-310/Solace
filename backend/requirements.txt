@@ -19,8 +19,6 @@ groq>=0.4.0
 sqlalchemy>=2.0.25
 asyncpg>=0.29.0
 
-# Caching (optional)
-redis>=5.0.1
 
 # Security
 cryptography>=42.0.0

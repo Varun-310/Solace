@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, createContext, useContext } from 'react';
-import { authAPI, getStoredUser } from '../services/auth';
+import { authAPI, getStoredUser, storeAuth } from '../services/auth';
 
 /**
  * Auth Context for global authentication state.
@@ -93,8 +93,10 @@ export const AuthProvider = ({ children }) => {
                 throw new Error(err.detail || 'Google login failed');
             }
             const data = await response.json();
-            localStorage.setItem('empathy_token', data.token);
-            localStorage.setItem('empathy_user', JSON.stringify(data.user));
+
+            // Replicate standard auth API behavior
+            storeAuth(data.token, data.user);
+
             setUser(data.user);
             return data;
         } catch (err) {

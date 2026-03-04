@@ -43,7 +43,6 @@ def preload_services():
             emotion_classifier = EmotionClassifier()
         if context_manager is None:
             context_manager = ContextManager(
-                redis_url=settings.REDIS_URL,
                 context_window=settings.CONTEXT_WINDOW,
                 emotion_classifier=emotion_classifier
             )
@@ -76,24 +75,12 @@ async def health_check():
     # Check Groq LLM
     llm_status = "connected" if settings.GROQ_API_KEY else "disconnected"
     
-    # Check Redis
-    redis_status = "disconnected"
-    try:
-        import redis.asyncio as redis_client
-        r = redis_client.from_url(settings.REDIS_URL)
-        await r.ping()
-        redis_status = "connected"
-        await r.close()
-    except Exception:
-        redis_status = "using_fallback"
-    
     status = "healthy" if llm_status == "connected" else "degraded"
     
     return HealthResponse(
         status=status,
         llm=llm_status,
-        model=settings.GROQ_MODEL,
-        redis=redis_status
+        model=settings.GROQ_MODEL
     )
 
 

@@ -29,9 +29,6 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = "password"
     DB_NAME: str = "postgres"
     
-    # Redis (optional session cache)
-    REDIS_URL: str = "redis://localhost:6379"
-    
     # Encryption
     ENCRYPTION_SECRET: str = "change-this-to-a-secure-random-string"
     

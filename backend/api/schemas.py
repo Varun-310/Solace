@@ -60,7 +60,6 @@ class HealthResponse(BaseModel):
     status: str
     llm: str
     model: str
-    redis: str
 
 
 # ============ Encrypted Message Schemas ============

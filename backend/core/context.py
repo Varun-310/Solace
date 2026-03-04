@@ -1,13 +1,13 @@
 """
 Context Management Service
-Manages conversation history and emotional context.
-Supports Redis for production, falls back to in-memory storage for development.
+Manages conversation history and emotional context directly in Supabase (PostgreSQL).
 """
 
 from typing import Dict, List, Optional
 from datetime import datetime
 import json
-
+from sqlalchemy import select, delete
+from core.user import ActiveContext, AsyncSessionLocal
 
 class Message:
     """Represents a single message in the conversation."""
@@ -16,12 +16,13 @@ class Message:
         self, 
         role: str, 
         content: str, 
-        emotion: Optional[Dict] = None
+        emotion: Optional[Dict] = None,
+        timestamp: Optional[datetime] = None
     ):
         self.role = role
         self.content = content
         self.emotion = emotion  # Hidden from user, used by AI
-        self.timestamp = datetime.now()
+        self.timestamp = timestamp or datetime.utcnow()
     
     def to_dict(self) -> Dict:
         return {
@@ -32,82 +33,20 @@ class Message:
         }
 
 
-class InMemoryStorage:
-    """Simple in-memory storage for development when Redis is not available."""
-    
-    def __init__(self):
-        self._data: Dict[str, List] = {}
-    
-    async def rpush(self, key: str, value: str):
-        if key not in self._data:
-            self._data[key] = []
-        self._data[key].append(value)
-    
-    async def lrange(self, key: str, start: int, end: int) -> List:
-        if key not in self._data:
-            return []
-        data = self._data[key]
-        if end == -1:
-            return data[start:]
-        return data[start:end + 1]
-    
-    async def ltrim(self, key: str, start: int, end: int):
-        if key in self._data:
-            if end == -1:
-                self._data[key] = self._data[key][start:]
-            else:
-                self._data[key] = self._data[key][start:end + 1]
-    
-    async def expire(self, key: str, seconds: int):
-        pass  # In-memory doesn't need expiry for dev
-    
-    async def delete(self, key: str):
-        if key in self._data:
-            del self._data[key]
-    
-    async def ping(self):
-        return True
-    
-    async def close(self):
-        pass
-
-
 class ContextManager:
     """
     Manages conversation context with emotional awareness.
-    
-    Features:
-    - Stores conversation history (Redis or in-memory)
-    - Tracks emotional trajectory (hidden from user)
-    - Provides context summaries for the LLM
+    Reads and writes to the ActiveContext table in Supabase.
     """
     
     def __init__(
         self, 
-        redis_url: str,
+        redis_url: str = None,  # Kept for backwards compatibility in init signatures
         context_window: int = 10,
         emotion_classifier = None
     ):
-        self.redis_url = redis_url
         self.context_window = context_window
         self.emotion_classifier = emotion_classifier
-        self._storage = None
-        self._use_redis = True
-    
-    async def _get_storage(self):
-        """Get storage backend (Redis or in-memory fallback)."""
-        if self._storage is None:
-            try:
-                import redis.asyncio as redis_client
-                self._storage = redis_client.from_url(self.redis_url)
-                await self._storage.ping()
-                print("✅ Connected to Redis for session storage")
-            except Exception as e:
-                print(f"⚠️  Redis not available ({e}), using in-memory storage")
-                print("   Note: Sessions won't persist across restarts")
-                self._storage = InMemoryStorage()
-                self._use_redis = False
-        return self._storage
     
     async def add_message(
         self, 
@@ -116,8 +55,6 @@ class ContextManager:
         content: str
     ) -> Message:
         """Add a message to the conversation."""
-        storage = await self._get_storage()
-        
         # Classify emotion for user messages (hidden from UI)
         emotion = None
         if role == "user" and self.emotion_classifier:
@@ -125,47 +62,57 @@ class ContextManager:
         
         message = Message(role=role, content=content, emotion=emotion)
         
-        # Store message
-        key = f"session:{session_id}:messages"
-        await storage.rpush(key, json.dumps(message.to_dict()))
-        
-        # Keep only recent messages (context window * 2 for both user and assistant)
-        await storage.ltrim(key, -self.context_window * 2, -1)
-        
-        # Set expiry (24 hours) - only works with Redis
-        await storage.expire(key, 86400)
-        
-        # Track emotions separately for trajectory analysis
-        if emotion:
-            emotion_key = f"session:{session_id}:emotions"
-            await storage.rpush(emotion_key, json.dumps({
-                "emotion": emotion["primary_emotion"],
-                "group": emotion["emotion_group"],
-                "confidence": emotion["confidence"],
-                "timestamp": message.timestamp.isoformat()
-            }))
-            await storage.ltrim(emotion_key, -20, -1)
-            await storage.expire(emotion_key, 86400)
-        
+        async with AsyncSessionLocal() as session:
+            # Add new message
+            ctx = ActiveContext(
+                session_id=session_id,
+                message_data=json.dumps(message.to_dict())
+            )
+            session.add(ctx)
+            await session.commit()
+            
+            # Enforce context window cleanly
+            result = await session.execute(
+                select(ActiveContext.id)
+                .where(ActiveContext.session_id == session_id)
+                .order_by(ActiveContext.created_at.desc())
+                .offset(self.context_window * 2)
+            )
+            old_ids = result.scalars().all()
+            if old_ids:
+                await session.execute(
+                    delete(ActiveContext).where(ActiveContext.id.in_(old_ids))
+                )
+                await session.commit()
+                
         return message
     
     async def get_context(self, session_id: str) -> Dict:
         """Get full conversation context."""
-        storage = await self._get_storage()
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(ActiveContext.message_data)
+                .where(ActiveContext.session_id == session_id)
+                .order_by(ActiveContext.created_at.asc())
+            )
+            raw_data = result.scalars().all()
+            
+        messages = [json.loads(data) for data in raw_data]
         
-        # Get messages
-        key = f"session:{session_id}:messages"
-        raw_messages = await storage.lrange(key, 0, -1)
-        messages = [json.loads(m) for m in raw_messages]
+        # Build emotional history
+        emotion_history = []
+        for m in messages:
+            if m.get("emotion"):
+                e = m["emotion"]
+                emotion_history.append({
+                    "emotion": e["primary_emotion"],
+                    "group": e["emotion_group"],
+                    "confidence": e["confidence"],
+                    "timestamp": m["timestamp"]
+                })
         
-        # Get stored emotion history (already classified, no re-inference needed)
-        emotion_key = f"session:{session_id}:emotions"
-        raw_emotions = await storage.lrange(emotion_key, 0, -1)
-        emotion_history = [json.loads(e) for e in raw_emotions]
-        
-        # Build overall state from stored history (fast, no ML inference)
+        # Build overall state from stored history
         if emotion_history:
-            # Use stored emotions to determine dominant emotion
             emotion_scores = {}
             n = len(emotion_history)
             for i, e in enumerate(emotion_history):
@@ -175,7 +122,6 @@ class ContextManager:
             sorted_emotions = sorted(emotion_scores.items(), key=lambda x: x[1], reverse=True)
             dominant = sorted_emotions[0][0] if sorted_emotions else "neutral"
             
-            # Trajectory from stored groups
             groups = [e["group"] for e in emotion_history]
             mid = len(groups) // 2
             if mid > 0:
@@ -210,16 +156,12 @@ class ContextManager:
         }
     
     def _get_emotion_group(self, emotion: str) -> str:
-        """Get the emotion group for a given emotion label."""
         if self.emotion_classifier:
             return self.emotion_classifier._get_group(emotion)
         return "neutral"
     
     async def get_emotional_summary(self, session_id: str) -> str:
-        """
-        Generate a natural language summary of emotional state.
-        This is injected into the LLM prompt (hidden from user).
-        """
+        """Generate a natural language summary of emotional state."""
         context = await self.get_context(session_id)
         
         if not context["emotion_history"]:
@@ -245,12 +187,12 @@ Adapt your response accordingly:
     
     async def clear_session(self, session_id: str):
         """Clear a session's conversation history."""
-        storage = await self._get_storage()
-        await storage.delete(f"session:{session_id}:messages")
-        await storage.delete(f"session:{session_id}:emotions")
+        async with AsyncSessionLocal() as session:
+            await session.execute(
+                delete(ActiveContext).where(ActiveContext.session_id == session_id)
+            )
+            await session.commit()
     
     async def close(self):
-        """Close storage connection."""
-        if self._storage:
-            await self._storage.close()
-            self._storage = None
+        """No-op. Keeping signature for backwards compatibility."""
+        pass

@@ -9,7 +9,7 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api') +
 const getToken = () => localStorage.getItem('empathy_token');
 
 // Store auth data
-const storeAuth = (token, user) => {
+export const storeAuth = (token, user) => {
     localStorage.setItem('empathy_token', token);
     localStorage.setItem('empathy_user', JSON.stringify(user));
 };
