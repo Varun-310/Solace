@@ -63,6 +63,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5173",    # Vite dev server
         "http://127.0.0.1:5173",
+        "https://trysolace.vercel.app",  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
